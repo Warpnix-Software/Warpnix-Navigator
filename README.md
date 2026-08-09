@@ -30,7 +30,7 @@ sudo pacman -S python python-gobject gtk3 webkit2gtk zenity
 Clone the repository, make the script executable, and run the engine:
 
 ```bash
-git clone https://github.com
+git clone https://github.com/Warpnix-Software/Warpnix-Navigator.git
 cd Warpnix-Navigator
 chmod +x wn_beta.sh
 ./wn_beta.sh
