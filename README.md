@@ -4,7 +4,7 @@ The very first step in the war against Chrome and Edge.
 
 ## Overview
 
-Warpnix Navigator is the web browser in the Warpnix family of open-source software, which also includes [WarpnixOS](https://github.com).
+Warpnix Navigator is the web browser in the Warpnix family of open-source software, which also includes [WarpnixOS](https://github.com/Warpnix-Software/WarpnixOS).
 
 ## Installing
 
