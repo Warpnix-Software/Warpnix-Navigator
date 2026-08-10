@@ -59,9 +59,13 @@ Adapt platform integration and interface behavior where necessary.
 0.4.x and Beyond — Additional Platforms
 
 Future platform targets include:
- Windows
+
+Windows
+ 
 ReactOS
- Haiku
+
+Haiku
+ 
  
 These are long-term development goals and may change as the project evolves.
 
