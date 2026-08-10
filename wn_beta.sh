@@ -67,13 +67,35 @@ main_layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
 top_panel = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
 top_panel.set_property("margin", 6)
 
+btn_back = Gtk.Button.new_from_icon_name("go-previous", Gtk.IconSize.BUTTON)
+btn_forward = Gtk.Button.new_from_icon_name("go-next", Gtk.IconSize.BUTTON)
+btn_reload = Gtk.Button.new_from_icon_name("view-refresh", Gtk.IconSize.BUTTON)
+
 url_entry = Gtk.Entry()
 url_entry.set_text(os.environ.get('TARGET_URL'))
 
+top_panel.pack_start(btn_back, False, False, 0)
+top_panel.pack_start(btn_forward, False, False, 0)
+top_panel.pack_start(btn_reload, False, False, 0)
 top_panel.pack_start(url_entry, True, True, 0)
 
 main_layout.pack_start(top_panel, False, False, 0)
 main_layout.pack_start(scrolled_window, True, True, 0)
+
+def on_back_clicked(button):
+    if browser.can_go_back():
+        browser.go_back()
+
+def on_forward_clicked(button):
+    if browser.can_go_forward():
+        browser.go_forward()
+
+def on_reload_clicked(button):
+    browser.reload()
+
+btn_back.connect("clicked", on_back_clicked)
+btn_forward.connect("clicked", on_forward_clicked)
+btn_reload.connect("clicked", on_reload_clicked)
 
 def on_url_submitted(entry):
     url = entry.get_text().strip()
@@ -90,6 +112,9 @@ def update_browser_state(webview, property):
     
     if not url_entry.is_focus():
         url_entry.set_text(uri)
+        
+    btn_back.set_sensitive(browser.can_go_back())
+    btn_forward.set_sensitive(browser.can_go_forward())
 
 browser.connect("notify::title", update_browser_state)
 browser.connect("notify::uri", update_browser_state)
@@ -116,4 +141,3 @@ window.add(main_layout)
 window.show_all()
 Gtk.main()
 EOF
-
