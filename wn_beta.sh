@@ -1,38 +1,8 @@
 #!/bin/bash
 
-MY_URL=$(zenity --entry \
-  --title="Warpnix Navigator" \
-  --text="Enter website URL, leave blank to go to the default search engine, Qwant Search:" \
-  --entry-text="https://qwant.com")
-
-if [ $? -ne 0 ]; then
-  exit 0
-fi
-
-if [ -z "$MY_URL" ] || [ "$MY_URL" = "https://" ]; then
-  MY_URL="https://qwant.com"
-elif [[ ! "$MY_URL" =~ ^[a-zA-Z]+:// ]]; then
-  MY_URL="https://$MY_URL"
-fi
-
-MY_URL=$(echo "$MY_URL" | tr -d '\\')
-
-(
-  echo "10" ; sleep 0.1
-  echo "50" ; sleep 0.1
-  echo "90" ; sleep 0.1
-  echo "100"
-) | zenity --progress \
-  --title="Warpnix Engine" \
-  --text="Launching engine..." \
-  --percentage=0 \
-  --auto-close \
-  --width=350
-
 export WEBKIT_DISABLE_COMPOSITING_MODE=0
 export WEBKIT_FORCE_SANDBOX=0
 export LIBGL_ALWAYS_SOFTWARE=1
-export TARGET_URL="$MY_URL"
 
 python3 - <<EOF
 import os
@@ -40,6 +10,83 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('WebKit2', '4.1')
 from gi.repository import Gtk, WebKit2, Gdk
+
+current_dir = os.path.dirname(os.path.realpath(__file__)) if '__file__' in locals() else os.getcwd()
+logo_path = os.path.join(current_dir, "logo.png")
+logo_url = "logo.png" if os.path.exists(logo_path) else ""
+
+HOMEPAGE_HTML = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Warpnix Navigator</title>
+    <style>
+        body {{
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }}
+        .container {{
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+        }}
+        img {{
+            max-width: 450px;
+            width: 100%;
+            height: auto;
+            margin-bottom: 30px;
+        }}
+        form {{
+            display: flex;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 24px;
+            padding: 6px 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }}
+        input[type="text"] {{
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 16px;
+            padding: 10px;
+            outline: none;
+        }}
+        button {{
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 0 10px;
+            font-size: 16px;
+        }}
+        button:hover {{
+            color: #fff;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        {"<img src='" + logo_url + "' alt='Warpnix Logo'>" if logo_url else "<h1>Warpnix Navigator</h1>"}
+        <form action="https://qwant.com" method="GET">
+            <input type="text" name="q" placeholder="Search Qwant..." autofocus required autocomplete="off">
+            <button type="submit">&#x1F50D;</button>
+        </form>
+    </div>
+</body>
+</html>
+"""
 
 window = Gtk.Window(title="Warpnix Navigator")
 window.set_default_size(1200, 800)
@@ -49,7 +96,7 @@ settings = WebKit2.Settings()
 settings.set_enable_html5_local_storage(True)
 settings.set_enable_2d_canvas_acceleration(True)
 settings.set_enable_developer_extras(False)
-settings.set_enable_hyperlink_auditing(False)
+settings.set_allow_file_access_from_file_urls(True)
 settings.set_user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
 context = WebKit2.WebContext.get_default()
@@ -57,7 +104,8 @@ context.set_cache_model(WebKit2.CacheModel.DOCUMENT_VIEWER)
 
 browser = WebKit2.WebView.new_with_context(context)
 browser.set_settings(settings)
-browser.load_uri(os.environ.get('TARGET_URL'))
+
+browser.load_html(HOMEPAGE_HTML, f"file://{current_dir}/")
 
 scrolled_window = Gtk.ScrolledWindow()
 scrolled_window.add(browser)
@@ -72,7 +120,7 @@ btn_forward = Gtk.Button.new_from_icon_name("go-next", Gtk.IconSize.BUTTON)
 btn_reload = Gtk.Button.new_from_icon_name("view-refresh", Gtk.IconSize.BUTTON)
 
 url_entry = Gtk.Entry()
-url_entry.set_text(os.environ.get('TARGET_URL'))
+url_entry.set_text("about:blank")
 
 top_panel.pack_start(btn_back, False, False, 0)
 top_panel.pack_start(btn_forward, False, False, 0)
@@ -91,7 +139,11 @@ def on_forward_clicked(button):
         browser.go_forward()
 
 def on_reload_clicked(button):
-    browser.reload()
+    uri = browser.get_uri() or ""
+    if uri == "about:blank" or not uri or uri.startswith("file://"):
+        browser.load_html(HOMEPAGE_HTML, f"file://{current_dir}/")
+    else:
+        browser.reload()
 
 btn_back.connect("clicked", on_back_clicked)
 btn_forward.connect("clicked", on_forward_clicked)
@@ -99,20 +151,33 @@ btn_reload.connect("clicked", on_reload_clicked)
 
 def on_url_submitted(entry):
     url = entry.get_text().strip()
-    if url and not (url.startswith("http://") or url.startswith("https://")):
-        url = "https://" + url
+    if url == "about:blank" or not url:
+        browser.load_html(HOMEPAGE_HTML, f"file://{current_dir}/")
+        return
+    if not (url.startswith("http://") or url.startswith("https://") or url.startswith("file://")):
+        if " " in url or "." not in url:
+            url = f"https://qwant.com?q={url.replace(' ', '+')}"
+        else:
+            url = "https://" + url
     browser.load_uri(url)
 
 url_entry.connect("activate", on_url_submitted)
 
 def update_browser_state(webview, property):
+    uri = browser.get_uri() or "about:blank"
     title = browser.get_title() or "Warpnix Navigator"
-    uri = browser.get_uri() or ""
-    window.set_title(f"{title} — {uri}")
-    
+
+    if "file://" in uri or uri == "about:blank":
+        title = "New Tab"
+        display_uri = "about:blank"
+    else:
+        display_uri = uri
+
+    window.set_title(f"{title} — {display_uri}")
+
     if not url_entry.is_focus():
-        url_entry.set_text(uri)
-        
+        url_entry.set_text(display_uri)
+
     btn_back.set_sensitive(browser.can_go_back())
     btn_forward.set_sensitive(browser.can_go_forward())
 
@@ -131,7 +196,7 @@ def handle_shortcuts(widget, event):
                 browser.go_forward()
             return True
         elif event.keyval == Gdk.KEY_r:
-            browser.reload()
+            on_reload_clicked(None)
             return True
     return False
 
