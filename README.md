@@ -40,6 +40,31 @@ chmod +x wn_beta.sh
 
 Use Warpnix Navigator while it's being developed! We are currently in very early Alpha stages, so stay tuned for new features.
 
+## Roadmap
+
+Warpnix Navigator is currently Linux-exclusive, with plans to expand support to additional operating systems as development progresses.
+
+0.2.x — BSD Support
+
+Expand Warpnix Navigator to BSD-based operating systems.
+
+Improve portability across Unix-like platforms.
+
+0.3.x — macOS Support
+
+Bring Warpnix Navigator to macOS.
+
+Adapt platform integration and interface behavior where necessary.
+
+0.4.x and Beyond — Additional Platforms
+
+Future platform targets include:
+ Windows
+ReactOS
+ Haiku
+ 
+These are long-term development goals and may change as the project evolves.
+
 ## Changelog
 
 ### 0.1.2
