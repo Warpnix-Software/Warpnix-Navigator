@@ -42,6 +42,11 @@ Use Warpnix Navigator while it's being developed! We are currently in very early
 
 ## Changelog
 
+### 0.1.1
+* Added physical Back, Forward, and Reload buttons directly into the top pane navigation layout.
+* Implemented dynamic interface sensitivity states to grey out history buttons when no routing states exist.
+
+
 ### 0.1.0
 The premiere release of Warpnix Navigator. No back, forward, or reload buttons yet, but those will be added soon. For now, you can use keyboard shortcuts:
 
