@@ -71,6 +71,10 @@ These are long-term development goals and may change as the project evolves.
 
 ## Changelog
 
+### 0.1.3
+Added a simple WIP homepage and WIP installer (both will be improved later in development, probably around 0.2.x.
+The installer runs in terminal at the moment, however it will be made graphical later on.
+
 ### 0.1.2
 Patched system security by binding an explicit permission listener that automatically denies and blocks webpage access requests to the system camera, microphone, and geolocation.
 
