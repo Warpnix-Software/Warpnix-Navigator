@@ -137,6 +137,12 @@ def handle_shortcuts(widget, event):
 
 window.connect("key-press-event", handle_shortcuts)
 
+def handle_permission_request(webview, request):
+    request.deny()
+    return True
+
+browser.connect("permission-request", handle_permission_request)
+
 window.add(main_layout)
 window.show_all()
 Gtk.main()
