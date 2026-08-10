@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ ! -f "wn_beta.sh" ] || [ ! -f "logo.png" ]; then
-    echo "Error: Please execute install.sh from inside your cloned Warpnix-Navigator folder."
+    echo "Error: Please execute installer.sh from inside your cloned Warpnix-Navigator folder."
     exit 1
 fi
 
@@ -15,10 +15,14 @@ mkdir -p "$TARGET_DIR"
 mkdir -p "$APPS_DIR"
 mkdir -p "$ICONS_DIR"
 
+# Copy execution script
 cp wn_beta.sh "$TARGET_DIR/wn_beta.sh"
-cp logo.png "$TARGET_DIR/logo.png"
 chmod +x "$TARGET_DIR/wn_beta.sh"
 
+# FIX: Ensure logo.png stays named logo.png inside the local application folder
+cp logo.png "$TARGET_DIR/logo.png"
+
+# Copy image to global theme icon cache for launcher mapping
 cp logo.png "$ICONS_DIR/warpnix-navigator.png"
 
 cat <<EOF > "$APPS_DIR/warpnix-navigator.desktop"
@@ -41,3 +45,4 @@ if command -v update-desktop-database &> /dev/null; then
 fi
 
 echo "Installation successful! You can now launch Warpnix Navigator from your application launcher."
+
