@@ -42,6 +42,10 @@ Use Warpnix Navigator while it's being developed! We are currently in very early
 
 ## Changelog
 
+### 0.1.2
+Patched system security by binding an explicit permission listener that automatically denies and blocks webpage access requests to the system camera, microphone, and geolocation.
+
+
 ### 0.1.1
 * Added physical Back, Forward, and Reload buttons directly into the top pane navigation layout.
 * Implemented dynamic interface sensitivity states to grey out history buttons when no routing states exist.
