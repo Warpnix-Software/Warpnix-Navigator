@@ -70,6 +70,13 @@ Haiku
 These are long-term development goals and may change as the project evolves.
 
 ## Changelog
+### 0.1.4
+* **Fixed graphical glitches:** Fixed the flickering and artifacts when clicking buttons on the homepage.
+* **Added tabs:** Added a new tab engine so you can open multiple websites at once.
+* **Tab close buttons:** Added a working close button (X) on every tab.
+* **Smart tab names:** Tab names automatically show the website title and stay neatly sized.
+* **New shortcuts:** Added `Alt` + `T` to open a new tab and `Alt` + `W` to close the active tab.
+* **Fixed startup crash:** Fixed a path bug that caused the browser to crash when launched on some Linux systems.
 
 ### 0.1.3
 Added a simple WIP homepage and WIP installer (both will be improved later in development, probably around 0.2.x.
