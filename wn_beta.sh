@@ -1,5 +1,4 @@
 #!/bin/bash
-
 export WEBKIT_DISABLE_COMPOSITING_MODE=1
 export WEBKIT_FORCE_SANDBOX=0
 export LIBGL_ALWAYS_SOFTWARE=1
@@ -7,21 +6,35 @@ export LIBGL_ALWAYS_SOFTWARE=1
 python3 - <<EOF
 import os
 import sys
+import base64
 import gi
+
 gi.require_version('Gtk', '3.0')
 gi.require_version('WebKit2', '4.1')
 from gi.repository import Gtk, WebKit2, Gdk
 
+# Robust environment path detection safe for Fedora Atomic container runtimes
 if '__file__' in locals():
     script_path = os.path.abspath(__file__)
-elif sys.argv and sys.argv[0]:
-    script_path = os.path.abspath(sys.argv[0])
 else:
-    script_path = os.getcwd()
+    if sys.argv and len(sys.argv) > 0 and sys.argv[0]:
+        script_path = os.path.abspath(sys.argv[0])
+    else:
+        script_path = os.getcwd()
 
 current_dir = os.path.dirname(script_path) if os.path.isfile(script_path) else os.getcwd()
+
+# Safe verification and Base64 conversion of the local image file to bypass security layers
 logo_path = os.path.join(current_dir, "logo.png")
-logo_url = "logo.png" if os.path.exists(logo_path) else ""
+logo_data_uri = ""
+
+if os.path.exists(logo_path):
+    try:
+        with open(logo_path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
+            logo_data_uri = f"data:image/png;base64,{encoded_string}"
+    except Exception:
+        pass  # Fallback gracefully to standard text layout if reading is blocked
 
 HOMEPAGE_HTML = f"""
 <!DOCTYPE html>
@@ -30,65 +43,21 @@ HOMEPAGE_HTML = f"""
     <meta charset="utf-8">
     <title>Warpnix Navigator</title>
     <style>
-        body {{
-            background-color: #121212;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-        }}
-        .container {{
-            text-align: center;
-            width: 100%;
-            max-width: 600px;
-            padding: 20px;
-        }}
-        img {{
-            max-width: 450px;
-            width: 100%;
-            height: auto;
-            margin-bottom: 30px;
-        }}
-        form {{
-            display: flex;
-            background: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 24px;
-            padding: 6px 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }}
-        input[type="text"] {{
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 16px;
-            padding: 10px;
-            outline: none;
-        }}
-        button {{
-            background: transparent;
-            border: none;
-            color: #888;
-            cursor: pointer;
-            padding: 0 10px;
-            font-size: 16px;
-        }}
-        button:hover {{
-            color: #fff;
-        }}
+        body {{ background-color: #121212; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }}
+        .container {{ text-align: center; width: 100%; max-width: 600px; padding: 20px; }}
+        h1 {{ font-size: 32px; font-weight: 600; margin-bottom: 25px; letter-spacing: -0.5px; }}
+        img {{ max-width: 450px; width: 100%; height: auto; margin-bottom: 30px; display: block; margin-left: auto; margin-right: auto; }}
+        form {{ display: flex; background: #1e1e1e; border: 1px solid #333; border-radius: 24px; padding: 6px 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }}
+        input[type="text"] {{ flex: 1; background: transparent; border: none; color: white; font-size: 16px; padding: 10px; outline: none; }}
+        button {{ background: transparent; border: none; color: #888; cursor: pointer; padding: 0 10px; font-size: 16px; }}
+        button:hover {{ color: #fff; }}
     </style>
 </head>
 <body>
     <div class="container">
-        {"<img src='" + logo_url + "' alt='Warpnix Logo'>" if logo_url else "<h1>Warpnix Navigator</h1>"}
-        <form action="https://qwant.com" method="GET">
-            <input type="text" name="q" placeholder="Search Qwant..." autofocus required autocomplete="off">
+        {f'<img src="{logo_data_uri}" alt="Warpnix Logo">' if logo_data_uri else '<h1>Warpnix Navigator</h1>'}
+        <form onsubmit="event.preventDefault(); window.location.href='https://qwant.com' + encodeURIComponent(document.querySelector('input').value);">
+            <input type="text" placeholder="Search Qwant..." autofocus required autocomplete="off">
             <button type="submit">&#x1F50D;</button>
         </form>
     </div>
@@ -101,7 +70,6 @@ window.set_default_size(1200, 800)
 window.connect("destroy", Gtk.main_quit)
 
 main_layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-
 top_panel = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
 top_panel.set_property("margin", 6)
 
@@ -109,7 +77,6 @@ btn_back = Gtk.Button.new_from_icon_name("go-previous", Gtk.IconSize.BUTTON)
 btn_forward = Gtk.Button.new_from_icon_name("go-next", Gtk.IconSize.BUTTON)
 btn_reload = Gtk.Button.new_from_icon_name("view-refresh", Gtk.IconSize.BUTTON)
 btn_new_tab = Gtk.Button.new_from_icon_name("list-add", Gtk.IconSize.BUTTON)
-
 url_entry = Gtk.Entry()
 url_entry.set_text("about:blank")
 
@@ -143,44 +110,44 @@ def create_new_tab(url=None):
     settings = WebKit2.Settings()
     settings.set_enable_html5_local_storage(True)
     settings.set_enable_2d_canvas_acceleration(True)
-    settings.set_enable_developer_extras(False)
+    settings.set_enable_developer_extras(True)
     settings.set_allow_file_access_from_file_urls(True)
     settings.set_user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    
+
     context = WebKit2.WebContext.get_default()
     context.set_cache_model(WebKit2.CacheModel.DOCUMENT_VIEWER)
-    
+
     browser = WebKit2.WebView.new_with_context(context)
     browser.set_settings(settings)
-    
+
     scrolled_window = Gtk.ScrolledWindow()
     scrolled_window.add(browser)
-    
+
     tab_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
     tab_label = Gtk.Label(label="New Tab")
     tab_label.set_max_width_chars(15)
     tab_label.set_ellipsize(3)
-    
+
     btn_close = Gtk.Button.new_from_icon_name("window-close", Gtk.IconSize.MENU)
     btn_close.set_relief(Gtk.ReliefStyle.NONE)
     btn_close.connect("clicked", close_tab, scrolled_window)
-    
+
     tab_header.pack_start(tab_label, True, True, 0)
     tab_header.pack_start(btn_close, False, False, 0)
     tab_header.show_all()
-    
+
     tab_index = notebook.append_page(scrolled_window, tab_header)
     notebook.show_all()
-    
+
     browser.connect("notify::title", update_browser_state)
     browser.connect("notify::uri", update_browser_state)
     browser.connect("permission-request", lambda nw, req: req.deny() or True)
-    
+
     if url:
         browser.load_uri(url)
     else:
         browser.load_html(HOMEPAGE_HTML, f"file://{current_dir}/")
-        
+
     notebook.set_current_page(tab_index)
     return browser
 
@@ -225,20 +192,22 @@ def on_url_submitted(entry):
 
 url_entry.connect("activate", on_url_submitted)
 
-def update_browser_state(webview, property):
+# Handled with *args to catch unexpected PyGObject system callback variables smoothly
+def update_browser_state(webview, *args):
     browser = get_current_browser()
     if not browser or webview != browser:
         return
-        
-    uri = browser.get_uri() or "about:blank"
+
+    raw_uri = browser.get_uri()
+    uri = raw_uri if raw_uri else "about:blank"
     title = browser.get_title() or "Warpnix Navigator"
-    
+
     if "file://" in uri or uri == "about:blank":
         title = "New Tab"
         display_uri = "about:blank"
     else:
         display_uri = uri
-        
+
     page_num = notebook.get_current_page()
     if page_num != -1:
         scrolled = notebook.get_nth_page(page_num)
@@ -247,12 +216,11 @@ def update_browser_state(webview, property):
             children = tab_header.get_children()
             if children:
                 children[0].set_text(title)
-        
+
     window.set_title(f"{title} — {display_uri}")
-    
     if not url_entry.is_focus():
         url_entry.set_text(display_uri)
-        
+
     btn_back.set_sensitive(browser.can_go_back())
     btn_forward.set_sensitive(browser.can_go_forward())
 
@@ -284,8 +252,8 @@ def handle_shortcuts(widget, event):
 window.connect("key-press-event", handle_shortcuts)
 
 create_new_tab()
-
 window.add(main_layout)
 window.show_all()
 Gtk.main()
 EOF
+          
