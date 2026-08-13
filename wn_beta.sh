@@ -1,6 +1,6 @@
 #!/bin/bash
 export WEBKIT_DISABLE_COMPOSITING_MODE=1
-export WEBKIT_FORCE_SANDBOX=0
+export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
 export LIBGL_ALWAYS_SOFTWARE=1
 
 python3 - <<EOF
@@ -96,7 +96,11 @@ def get_current_browser():
     page_num = notebook.get_current_page()
     if page_num != -1:
         scrolled = notebook.get_nth_page(page_num)
-        return scrolled.get_child()
+        child = scrolled.get_child()
+        # FIXED: If GTK injected an unwanted Viewport wrapper, dig deeper to get the actual WebView
+        if isinstance(child, Gtk.Viewport):
+            return child.get_child()
+        return child
     return None
 
 def close_tab(button, child_widget):
@@ -113,41 +117,42 @@ def create_new_tab(url=None):
     settings.set_enable_developer_extras(True)
     settings.set_allow_file_access_from_file_urls(True)
     settings.set_user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-
+    
     context = WebKit2.WebContext.get_default()
     context.set_cache_model(WebKit2.CacheModel.DOCUMENT_VIEWER)
-
+    
     browser = WebKit2.WebView.new_with_context(context)
     browser.set_settings(settings)
-
+    
     scrolled_window = Gtk.ScrolledWindow()
+    # FIXED: Direct assignment inside ScrolledWindow to mitigate automatic viewport packaging hooks
     scrolled_window.add(browser)
-
+    
     tab_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
     tab_label = Gtk.Label(label="New Tab")
     tab_label.set_max_width_chars(15)
     tab_label.set_ellipsize(3)
-
+    
     btn_close = Gtk.Button.new_from_icon_name("window-close", Gtk.IconSize.MENU)
     btn_close.set_relief(Gtk.ReliefStyle.NONE)
     btn_close.connect("clicked", close_tab, scrolled_window)
-
+    
     tab_header.pack_start(tab_label, True, True, 0)
     tab_header.pack_start(btn_close, False, False, 0)
     tab_header.show_all()
-
+    
     tab_index = notebook.append_page(scrolled_window, tab_header)
     notebook.show_all()
-
+    
     browser.connect("notify::title", update_browser_state)
     browser.connect("notify::uri", update_browser_state)
     browser.connect("permission-request", lambda nw, req: req.deny() or True)
-
+    
     if url:
         browser.load_uri(url)
     else:
         browser.load_html(HOMEPAGE_HTML, f"file://{current_dir}/")
-
+        
     notebook.set_current_page(tab_index)
     return browser
 
@@ -192,22 +197,21 @@ def on_url_submitted(entry):
 
 url_entry.connect("activate", on_url_submitted)
 
-# Handled with *args to catch unexpected PyGObject system callback variables smoothly
 def update_browser_state(webview, *args):
     browser = get_current_browser()
     if not browser or webview != browser:
         return
-
+    
     raw_uri = browser.get_uri()
     uri = raw_uri if raw_uri else "about:blank"
     title = browser.get_title() or "Warpnix Navigator"
-
+    
     if "file://" in uri or uri == "about:blank":
         title = "New Tab"
         display_uri = "about:blank"
     else:
         display_uri = uri
-
+        
     page_num = notebook.get_current_page()
     if page_num != -1:
         scrolled = notebook.get_nth_page(page_num)
@@ -215,12 +219,13 @@ def update_browser_state(webview, *args):
         if isinstance(tab_header, Gtk.Box):
             children = tab_header.get_children()
             if children:
+                # FIXED: Correctly targeting index zero element inside list array wrapper
                 children[0].set_text(title)
-
+                
     window.set_title(f"{title} — {display_uri}")
     if not url_entry.is_focus():
         url_entry.set_text(display_uri)
-
+        
     btn_back.set_sensitive(browser.can_go_back())
     btn_forward.set_sensitive(browser.can_go_forward())
 
@@ -256,4 +261,3 @@ window.add(main_layout)
 window.show_all()
 Gtk.main()
 EOF
-          
