@@ -70,6 +70,9 @@ Haiku
 These are long-term development goals and may change as the project evolves.
 
 ## Changelog
+### 0.1.5
+Added Fedora Atomic support and fixed some bugs with Python tracebacks.
+
 ### 0.1.4
 * **Fixed graphical glitches:** Fixed the flickering and artifacts when clicking buttons on the homepage.
 * **Added tabs:** Added a new tab engine so you can open multiple websites at once.
