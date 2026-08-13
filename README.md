@@ -1,9 +1,6 @@
 # Warpnix Navigator
 > The very first step in the war against Chrome and Edge.
 
-[![License: GPL v3](https://shields.io)](https://gnu.org)
-![Status: Alpha](https://shields.io)
-
 Warpnix Navigator is a hyper-lightweight, minimal web browser built for the Warpnix family of open-source software (including [WarpnixOS](https://github.com/Warpnix-Software/WarpnixOS)). Built using **Python**, **Bash**, **GTK3**, and **WebKit**, it strips away mainstream browser bloat for a fast, system-native experience.
 
 ---
