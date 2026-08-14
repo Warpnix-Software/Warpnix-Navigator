@@ -6,7 +6,7 @@ Warpnix Navigator is a hyper-lightweight, minimal web browser built for the Warp
 ---
 
 ## Preview
-tba
+![Preview, Warpnix Navigator running on Zorin OS 18 with Cinnamon Desktop](PREVIEW.png)   
 
 ---
 
