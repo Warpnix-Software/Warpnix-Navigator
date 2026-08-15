@@ -58,8 +58,8 @@ chmod +x wn_beta.sh
 ---
 
 ##  Roadmap
-* **0.2.x — BSD Support:** Expand to BSD-based operating systems and improve portability.
-* **0.3.x — OS X Support:** Adapt platform integration and interface behavior.
+* **0.2.x — OS X Support:** Expand to more Unix-like and Unix-based operating systems and improve portability.
+* **0.3.x — BSD Support:** Adapt platform integration and interface behavior.
 * **0.4.x and Beyond:** Long-term targets include Windows, ReactOS, and Haiku.
 
 ## Contributing
