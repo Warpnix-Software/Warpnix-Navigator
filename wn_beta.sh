@@ -56,7 +56,7 @@ HOMEPAGE_HTML = f"""
 <body>
     <div class="container">
         {f'<img src="{logo_data_uri}" alt="Warpnix Logo">' if logo_data_uri else '<h1>Warpnix Navigator</h1>'}
-        <form onsubmit="event.preventDefault(); window.location.href='https://qwant.com' + encodeURIComponent(document.querySelector('input').value);">
+        <form onsubmit="event.preventDefault(); window.location.href='https://qwant.com/?q=' + encodeURIComponent(document.querySelector('input').value);">
             <input type="text" placeholder="Search Qwant..." autofocus required autocomplete="off">
             <button type="submit">&#x1F50D;</button>
         </form>
@@ -97,7 +97,6 @@ def get_current_browser():
     if page_num != -1:
         scrolled = notebook.get_nth_page(page_num)
         child = scrolled.get_child()
-        # FIXED: If GTK injected an unwanted Viewport wrapper, dig deeper to get the actual WebView
         if isinstance(child, Gtk.Viewport):
             return child.get_child()
         return child
@@ -125,7 +124,6 @@ def create_new_tab(url=None):
     browser.set_settings(settings)
     
     scrolled_window = Gtk.ScrolledWindow()
-    # FIXED: Direct assignment inside ScrolledWindow to mitigate automatic viewport packaging hooks
     scrolled_window.add(browser)
     
     tab_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
