@@ -3,7 +3,7 @@ export WEBKIT_DISABLE_COMPOSITING_MODE=1
 export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
 export LIBGL_ALWAYS_SOFTWARE=1
 
-python3 - <<EOF
+python3 - <<'EOF'
 import os
 import sys
 import base64
@@ -13,7 +13,6 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('WebKit2', '4.1')
 
 from gi.repository import Gtk, WebKit2, Gdk
-
 
 if '__file__' in locals():
     script_path = os.path.abspath(__file__)
@@ -28,7 +27,6 @@ current_dir = (
     if os.path.isfile(script_path)
     else os.getcwd()
 )
-
 
 logo_path = os.path.join(current_dir, "logo.png")
 logo_data_uri = ""
@@ -101,6 +99,7 @@ def get_homepage_html():
             width: 100%;
             max-width: 600px;
             padding: 20px;
+            box-sizing: border-box;
         }}
 
         h1 {{
@@ -200,12 +199,10 @@ window.connect(
     Gtk.main_quit
 )
 
-
 main_layout = Gtk.Box(
     orientation=Gtk.Orientation.VERTICAL,
     spacing=0
 )
-
 
 top_panel = Gtk.Box(
     orientation=Gtk.Orientation.HORIZONTAL,
@@ -216,7 +213,6 @@ top_panel.set_property(
     "margin",
     6
 )
-
 
 btn_back = Gtk.Button.new_from_icon_name(
     "go-previous",
@@ -251,7 +247,6 @@ url_entry = Gtk.Entry()
 url_entry.set_text(
     "about:blank"
 )
-
 
 top_panel.pack_start(
     btn_back,
@@ -295,7 +290,6 @@ top_panel.pack_end(
     0
 )
 
-
 notebook = Gtk.Notebook()
 
 notebook.set_scrollable(
@@ -316,8 +310,407 @@ main_layout.pack_start(
     0
 )
 
-
 browser_to_tab = {}
+
+history_entries = []
+
+
+def add_history_entry(webview):
+
+    if not webview:
+        return
+
+    uri = webview.get_uri() or ""
+
+    if (
+        not uri
+        or uri == "about:blank"
+        or uri.startswith("file://")
+    ):
+        return
+
+    title = webview.get_title() or uri
+
+    if history_entries:
+        if history_entries[-1]["uri"] == uri:
+            return
+
+    history_entries.append({
+        "title": title,
+        "uri": uri
+    })
+
+
+def save_history_to_txt(parent_window):
+
+    if not history_entries:
+
+        dialog = Gtk.MessageDialog(
+            transient_for=parent_window,
+            modal=True,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,
+            text="History is empty."
+        )
+
+        dialog.run()
+        dialog.destroy()
+
+        return
+
+    dialog = Gtk.FileChooserDialog(
+        title="Save Warpnix History",
+        parent=parent_window,
+        action=Gtk.FileChooserAction.SAVE
+    )
+
+    dialog.add_button(
+        "Cancel",
+        Gtk.ResponseType.CANCEL
+    )
+
+    dialog.add_button(
+        "Save",
+        Gtk.ResponseType.ACCEPT
+    )
+
+    dialog.set_current_name(
+        "warpnix-history.txt"
+    )
+
+    dialog.set_do_overwrite_confirmation(
+        True
+    )
+
+    response = dialog.run()
+
+    if response == Gtk.ResponseType.ACCEPT:
+
+        filename = dialog.get_filename()
+
+        if filename:
+
+            if not filename.lower().endswith(".txt"):
+                filename += ".txt"
+
+            try:
+
+                with open(
+                    filename,
+                    "w",
+                    encoding="utf-8"
+                ) as history_file:
+
+                    history_file.write(
+                        "Warpnix Navigator History\n"
+                    )
+
+                    history_file.write(
+                        "==========================\n\n"
+                    )
+
+                    for index, entry in enumerate(
+                        reversed(history_entries),
+                        start=1
+                    ):
+
+                        history_file.write(
+                            f"{index}. "
+                            f"{entry['title']}\n"
+                        )
+
+                        history_file.write(
+                            f"   {entry['uri']}\n\n"
+                        )
+
+                success_dialog = Gtk.MessageDialog(
+                    transient_for=parent_window,
+                    modal=True,
+                    message_type=Gtk.MessageType.INFO,
+                    buttons=Gtk.ButtonsType.OK,
+                    text="History saved successfully."
+                )
+
+                success_dialog.format_secondary_text(
+                    filename
+                )
+
+                success_dialog.run()
+                success_dialog.destroy()
+
+            except Exception as error:
+
+                error_dialog = Gtk.MessageDialog(
+                    transient_for=parent_window,
+                    modal=True,
+                    message_type=Gtk.MessageType.ERROR,
+                    buttons=Gtk.ButtonsType.OK,
+                    text="Could not save history."
+                )
+
+                error_dialog.format_secondary_text(
+                    str(error)
+                )
+
+                error_dialog.run()
+                error_dialog.destroy()
+
+    dialog.destroy()
+
+
+def show_history(button=None):
+
+    history_window = Gtk.Window(
+        title="Warpnix History",
+        transient_for=window,
+        modal=False
+    )
+
+    history_window.set_default_size(
+        650,
+        500
+    )
+
+    layout = Gtk.Box(
+        orientation=Gtk.Orientation.VERTICAL,
+        spacing=8
+    )
+
+    layout.set_property(
+        "margin",
+        12
+    )
+
+    header = Gtk.Box(
+        orientation=Gtk.Orientation.HORIZONTAL,
+        spacing=8
+    )
+
+    title = Gtk.Label()
+
+    title.set_markup(
+        "<big><b>🕘 Warpnix History</b></big>"
+    )
+
+    title.set_xalign(0)
+
+    header.pack_start(
+        title,
+        True,
+        True,
+        0
+    )
+
+    save_button = Gtk.Button(
+        label="💾 Save as TXT"
+    )
+
+    save_button.set_tooltip_text(
+        "Save browsing history as a text file"
+    )
+
+    save_button.connect(
+        "clicked",
+        lambda b:
+            save_history_to_txt(history_window)
+    )
+
+    header.pack_end(
+        save_button,
+        False,
+        False,
+        0
+    )
+
+    layout.pack_start(
+        header,
+        False,
+        False,
+        0
+    )
+
+    scrolled = Gtk.ScrolledWindow()
+
+    scrolled.set_policy(
+        Gtk.PolicyType.AUTOMATIC,
+        Gtk.PolicyType.AUTOMATIC
+    )
+
+    history_list = Gtk.ListBox()
+
+    history_list.set_selection_mode(
+        Gtk.SelectionMode.SINGLE
+    )
+
+    def open_history_url(uri):
+
+        browser = get_current_browser()
+
+        if browser:
+
+            browser.load_uri(
+                uri
+            )
+
+            history_window.destroy()
+
+    def rebuild_history_list():
+
+        for child in history_list.get_children():
+            history_list.remove(child)
+
+        for entry in reversed(history_entries):
+
+            row = Gtk.ListBoxRow()
+
+            row_box = Gtk.Box(
+                orientation=Gtk.Orientation.VERTICAL,
+                spacing=3
+            )
+
+            row_box.set_property(
+                "margin",
+                8
+            )
+
+            page_title = Gtk.Label(
+                label=entry["title"]
+            )
+
+            page_title.set_xalign(0)
+
+            page_title.set_ellipsize(3)
+
+            page_uri = Gtk.Label(
+                label=entry["uri"]
+            )
+
+            page_uri.set_xalign(0)
+
+            page_uri.set_ellipsize(3)
+
+            row_box.pack_start(
+                page_title,
+                False,
+                False,
+                0
+            )
+
+            row_box.pack_start(
+                page_uri,
+                False,
+                False,
+                0
+            )
+
+            row.add(
+                row_box
+            )
+
+            row.connect(
+                "activate",
+                lambda r, uri=entry["uri"]:
+                    open_history_url(uri)
+            )
+
+            history_list.add(
+                row
+            )
+
+        history_list.show_all()
+
+    scrolled.add(
+        history_list
+    )
+
+    layout.pack_start(
+        scrolled,
+        True,
+        True,
+        0
+    )
+
+    bottom_panel = Gtk.Box(
+        orientation=Gtk.Orientation.HORIZONTAL,
+        spacing=8
+    )
+
+    history_count = Gtk.Label()
+
+    history_count.set_xalign(0)
+
+    history_count.set_text(
+        f"{len(history_entries)} history entries"
+    )
+
+    clear_button = Gtk.Button(
+        label="🗑 Clear History"
+    )
+
+    def clear_history(button):
+
+        if not history_entries:
+            return
+
+        confirm = Gtk.MessageDialog(
+            transient_for=history_window,
+            modal=True,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Clear all history?"
+        )
+
+        confirm.format_secondary_text(
+            "This will remove all WIP history from this session."
+        )
+
+        response = confirm.run()
+
+        confirm.destroy()
+
+        if response == Gtk.ResponseType.YES:
+
+            history_entries.clear()
+
+            rebuild_history_list()
+
+            history_count.set_text(
+                "0 history entries"
+            )
+
+    clear_button.connect(
+        "clicked",
+        clear_history
+    )
+
+    bottom_panel.pack_start(
+        history_count,
+        True,
+        True,
+        0
+    )
+
+    bottom_panel.pack_end(
+        clear_button,
+        False,
+        False,
+        0
+    )
+
+    layout.pack_start(
+        bottom_panel,
+        False,
+        False,
+        0
+    )
+
+    history_window.add(
+        layout
+    )
+
+    rebuild_history_list()
+
+    history_window.show_all()
 
 
 def get_current_browser():
@@ -362,9 +755,15 @@ def close_tab(
     for webview, tab in list(
         browser_to_tab.items()
     ):
+
         if tab == scrolled_window:
+
             browser = webview
-            del browser_to_tab[webview]
+
+            del browser_to_tab[
+                webview
+            ]
+
             break
 
     notebook.remove_page(
@@ -462,6 +861,10 @@ def update_browser_state(
     if not webview:
         return
 
+    add_history_entry(
+        webview
+    )
+
     update_tab_title(
         webview
     )
@@ -490,13 +893,16 @@ def update_browser_state(
         or
         uri.startswith("file://")
     ):
+
         title = "New Tab"
         display_uri = "about:blank"
+
     else:
+
         display_uri = uri
 
     window.set_title(
-        f"WarpnixOS - {title} — {display_uri}"
+        f"Warpnix Navigator - {title} — {display_uri}"
     )
 
     if not url_entry.is_focus():
@@ -570,7 +976,6 @@ def create_new_tab(
         browser
     )
 
-
     tab_header = Gtk.Box(
         orientation=Gtk.Orientation.HORIZONTAL,
         spacing=4
@@ -580,7 +985,6 @@ def create_new_tab(
         150,
         30
     )
-
 
     tab_label = Gtk.Label(
         label="New Tab"
@@ -606,7 +1010,6 @@ def create_new_tab(
         True
     )
 
-
     btn_close = Gtk.Button.new_from_icon_name(
         "window-close",
         Gtk.IconSize.MENU
@@ -626,7 +1029,6 @@ def create_new_tab(
         scrolled_window
     )
 
-
     tab_header.pack_start(
         tab_label,
         True,
@@ -643,20 +1045,16 @@ def create_new_tab(
 
     tab_header.show_all()
 
-
     tab_index = notebook.append_page(
         scrolled_window,
         tab_header
     )
 
-
     browser_to_tab[
         browser
     ] = scrolled_window
 
-
     notebook.show_all()
-
 
     browser.connect(
         "notify::title",
@@ -668,12 +1066,19 @@ def create_new_tab(
         update_browser_state
     )
 
+    def deny_permission(
+        webview,
+        request
+    ):
+
+        request.deny()
+
+        return True
+
     browser.connect(
         "permission-request",
-        lambda nw, req:
-            req.deny() or True
+        deny_permission
     )
-
 
     if url:
 
@@ -687,7 +1092,6 @@ def create_new_tab(
             get_homepage_html(),
             f"file://{current_dir}/"
         )
-
 
     notebook.set_current_page(
         tab_index
@@ -709,6 +1113,7 @@ def on_back_clicked(
         and
         browser.can_go_back()
     ):
+
         browser.go_back()
 
 
@@ -725,6 +1130,7 @@ def on_forward_clicked(
         and
         browser.can_go_forward()
     ):
+
         browser.go_forward()
 
 
@@ -927,7 +1333,6 @@ def show_settings(
 
         return
 
-
     settings_window = Gtk.Window(
         title="Warpnix Settings",
         transient_for=window,
@@ -936,13 +1341,12 @@ def show_settings(
 
     settings_window.set_default_size(
         360,
-        300
+        350
     )
 
     settings_window.set_resizable(
         False
     )
-
 
     settings_layout = Gtk.Box(
         orientation=Gtk.Orientation.VERTICAL,
@@ -953,7 +1357,6 @@ def show_settings(
         "margin",
         20
     )
-
 
     title = Gtk.Label()
 
@@ -967,7 +1370,6 @@ def show_settings(
         False,
         0
     )
-
 
     appearance_label = Gtk.Label(
         label="Appearance"
@@ -983,7 +1385,6 @@ def show_settings(
         False,
         10
     )
-
 
     dark_button = Gtk.Button(
         label="🌙  Dark Mode"
@@ -1002,7 +1403,6 @@ def show_settings(
         0
     )
 
-
     light_button = Gtk.Button(
         label="☀  Light Mode"
     )
@@ -1020,6 +1420,25 @@ def show_settings(
         0
     )
 
+    history_button = Gtk.Button(
+        label="🕘  History"
+    )
+
+    history_button.set_tooltip_text(
+        "View browsing history"
+    )
+
+    history_button.connect(
+        "clicked",
+        show_history
+    )
+
+    settings_layout.pack_start(
+        history_button,
+        False,
+        False,
+        0
+    )
 
     separator = Gtk.Separator(
         orientation=Gtk.Orientation.HORIZONTAL
@@ -1031,7 +1450,6 @@ def show_settings(
         False,
         10
     )
-
 
     wip_label = Gtk.Label(
         label="More settings coming soon..."
@@ -1047,7 +1465,6 @@ def show_settings(
         False,
         0
     )
-
 
     close_app_button = Gtk.Button(
         label="❌  Close Warpnix Navigator"
@@ -1065,7 +1482,6 @@ def show_settings(
         False,
         0
     )
-
 
     settings_window.add(
         settings_layout
@@ -1178,7 +1594,6 @@ window.connect(
     "key-press-event",
     handle_shortcuts
 )
-
 
 create_new_tab()
 
