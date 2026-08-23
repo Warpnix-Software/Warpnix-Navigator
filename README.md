@@ -1,7 +1,7 @@
-# Warpnix Navigator
+ # Warpnix Navigator
 > The very first step in the war against Chrome and Edge.
 
-Warpnix Navigator is a hyper-lightweight, minimal web browser built for the Warpnix family of open-source software (including [WarpnixOS](https://github.com/Warpnix-Software/WarpnixOS)). Built using **Python**, **Bash**, **GTK3**, and **WebKit**, it strips away mainstream browser bloat for a fast, system-native experience.
+Warpnix Navigator is a hyper-lightweight, minimalist deGoogled web browser built for the Warpnix family of open-source software (including [WarpnixOS](https://github.com/Warpnix-Software/WarpnixOS)). Built using **Python**, **Bash**, **GTK3**, and **WebKit**, it strips away mainstream browser bloat (I'm lookin' at you, Chrome!) for a fast, system-native experience.
 
 ---
 
@@ -12,7 +12,7 @@ Warpnix Navigator is a hyper-lightweight, minimal web browser built for the Warp
 
 ## Security by Default
 * **Hardened Privacy:** Automatically denies and blocks all background webpage access requests to your system camera, microphone, and geolocation out of the box.
-* **Lightweight Architecture:** Uses native `webkit2gtk` rendering engine to keep RAM consumption incredibly low.
+* **Lightweight Architecture:** Uses the native WebKit2GTK rendering engine to keep RAM consumption incredibly low, using just under 200 megabytes of memory on idle.
 
 ## Installing
 
@@ -36,7 +36,7 @@ sudo rpm install python3 python3-gobject gtk3 webkit2gtk4.1 zenity
 sudo pacman -S python python-gobject gtk3 webkit2gtk zenity
 ```
 
-### ⚡ Setup & Execution
+### Setup & Execution
 Clone the repository, make the script executable, and run the browser:
 
 ```bash
@@ -64,3 +64,7 @@ chmod +x wn_beta.sh
 
 ## Contributing
 Warpnix Navigator is licensed under the GPL-3.0 License. Bug reports and feature requests are completely welcome—feel free to open an issue or submit a pull request!
+
+## Find me on YouTube @WarpdevOfficial
+
+### Thanks for using Warpnix Navigator!
