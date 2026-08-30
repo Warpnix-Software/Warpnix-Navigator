@@ -1,12 +1,15 @@
 #!/bin/bash
+
 export WEBKIT_DISABLE_COMPOSITING_MODE=1
 export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
 export LIBGL_ALWAYS_SOFTWARE=1
 
 python3 - <<'EOF'
+
 import os
 import sys
 import base64
+import json
 import gi
 
 gi.require_version('Gtk', '3.0')
@@ -44,60 +47,150 @@ if os.path.exists(logo_path):
     except Exception:
         pass
 
+current_theme = {
+    "name": "Default Dark",
+    "version": 1,
+    "colors": {
+        "background": "#121212",
+        "foreground": "#ffffff",
+        "form_background": "#1e1e1e",
+        "border": "#333333",
+        "secondary": "#888888"
+    }
+}
+
+def normalize_hex_color(color):
+    if not color:
+        return "#000000"
+
+    color = color.strip()
+
+    if color.startswith("#"):
+        color = color[1:]
+
+    if len(color) == 6:
+        return "#" + color.upper()
+
+    if len(color) == 8:
+        return "#" + color[:6].upper()
+
+    return "#000000"
+
+def get_theme_color(name):
+    return current_theme["colors"].get(
+        name,
+        "#000000"
+    )
+
+def set_theme_color(name, color):
+    current_theme["colors"][name] = normalize_hex_color(color)
+
+def apply_theme(theme_data):
+    global current_theme
+
+    if not isinstance(theme_data, dict):
+        return False
+
+    colors = theme_data.get("colors")
+
+    if not isinstance(colors, dict):
+        return False
+
+    required_colors = [
+        "background",
+        "foreground",
+        "form_background",
+        "border",
+        "secondary"
+    ]
+
+    for color_name in required_colors:
+        if color_name not in colors:
+            return False
+
+    current_theme = {
+        "name": theme_data.get(
+            "name",
+            "Unnamed Theme"
+        ),
+        "version": theme_data.get(
+            "version",
+            1
+        ),
+        "colors": {
+            "background": normalize_hex_color(
+                colors["background"]
+            ),
+            "foreground": normalize_hex_color(
+                colors["foreground"]
+            ),
+            "form_background": normalize_hex_color(
+                colors["form_background"]
+            ),
+            "border": normalize_hex_color(
+                colors["border"]
+            ),
+            "secondary": normalize_hex_color(
+                colors["secondary"]
+            )
+        }
+    }
+
+    return True
 
 def get_homepage_html():
 
-    gtk_settings = Gtk.Settings.get_default()
-
-    dark_mode = gtk_settings.get_property(
-        "gtk-application-prefer-dark-theme"
-    )
-
-    if dark_mode:
-        background = "#121212"
-        foreground = "#ffffff"
-        form_background = "#1e1e1e"
-        border = "#333333"
-        secondary = "#888888"
-    else:
-        background = "#f5f5f5"
-        foreground = "#111111"
-        form_background = "#ffffff"
-        border = "#cccccc"
-        secondary = "#666666"
+    background = get_theme_color("background")
+    foreground = get_theme_color("foreground")
+    form_background = get_theme_color("form_background")
+    border = get_theme_color("border")
+    secondary = get_theme_color("secondary")
 
     logo_html = (
         f'<img src="{logo_data_uri}" alt="Warpnix Logo">'
         if logo_data_uri
-        else
-        '<h1>Warpnix Navigator</h1>'
+        else '<h1>Warpnix Navigator</h1>'
     )
 
     return f"""
 <!DOCTYPE html>
 <html>
+
 <head>
+
     <meta charset="utf-8">
+
     <title>Warpnix Navigator</title>
 
     <style>
+
         body {{
             background-color: {background};
             color: {foreground};
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                sans-serif;
+
             display: flex;
             flex-direction: column;
+
             align-items: center;
             justify-content: center;
+
             height: 100vh;
             margin: 0;
+
             overflow: hidden;
         }}
 
         .container {{
             text-align: center;
+
             width: 100%;
             max-width: 600px;
+
             padding: 20px;
             box-sizing: border-box;
         }}
@@ -105,36 +198,55 @@ def get_homepage_html():
         h1 {{
             font-size: 32px;
             font-weight: 600;
+
             margin-bottom: 25px;
+
             letter-spacing: -0.5px;
         }}
 
         img {{
             max-width: 450px;
             width: 100%;
+
             height: auto;
+
             margin-bottom: 30px;
+
             display: block;
+
             margin-left: auto;
             margin-right: auto;
         }}
 
         form {{
             display: flex;
+
             background: {form_background};
+
             border: 1px solid {border};
+
             border-radius: 24px;
+
             padding: 6px 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+
+            box-shadow:
+                0 4px 6px
+                rgba(0,0,0,0.15);
         }}
 
         input[type="text"] {{
             flex: 1;
+
             background: transparent;
+
             border: none;
+
             color: {foreground};
+
             font-size: 16px;
+
             padding: 10px;
+
             outline: none;
         }}
 
@@ -144,31 +256,43 @@ def get_homepage_html():
 
         button {{
             background: transparent;
+
             border: none;
+
             color: {secondary};
+
             cursor: pointer;
+
             padding: 0 10px;
+
             font-size: 16px;
         }}
 
         button:hover {{
             color: {foreground};
         }}
+
     </style>
+
 </head>
 
 <body>
+
     <div class="container">
+
         {logo_html}
 
         <form onsubmit="
             event.preventDefault();
+
             window.location.href =
                 'https://qwant.com/?q=' +
+
                 encodeURIComponent(
                     document.querySelector('input').value
                 );
         ">
+
             <input
                 type="text"
                 placeholder="Search Qwant..."
@@ -177,13 +301,18 @@ def get_homepage_html():
                 autocomplete="off"
             >
 
-            <button type="submit">&#x1F50D;</button>
+            <button type="submit">
+                &#x1F50D;
+            </button>
+
         </form>
+
     </div>
+
 </body>
+
 </html>
 """
-
 
 window = Gtk.Window(
     title="Warpnix Navigator"
@@ -314,7 +443,6 @@ browser_to_tab = {}
 
 history_entries = []
 
-
 def add_history_entry(webview):
 
     if not webview:
@@ -339,7 +467,6 @@ def add_history_entry(webview):
         "title": title,
         "uri": uri
     })
-
 
 def save_history_to_txt(parent_window):
 
@@ -456,7 +583,6 @@ def save_history_to_txt(parent_window):
                 error_dialog.destroy()
 
     dialog.destroy()
-
 
 def show_history(button=None):
 
@@ -712,7 +838,6 @@ def show_history(button=None):
 
     history_window.show_all()
 
-
 def get_current_browser():
 
     page_num = notebook.get_current_page()
@@ -736,7 +861,6 @@ def get_current_browser():
         return child.get_child()
 
     return child
-
 
 def close_tab(
     button,
@@ -773,7 +897,6 @@ def close_tab(
     if notebook.get_n_pages() == 0:
         Gtk.main_quit()
 
-
 def get_tab_label_widget(
     scrolled_window
 ):
@@ -797,7 +920,6 @@ def get_tab_label_widget(
             return child
 
     return None
-
 
 def update_tab_title(
     webview
@@ -852,7 +974,6 @@ def update_tab_title(
             title
         )
 
-
 def update_browser_state(
     webview,
     *args
@@ -906,6 +1027,7 @@ def update_browser_state(
     )
 
     if not url_entry.is_focus():
+
         url_entry.set_text(
             display_uri
         )
@@ -917,7 +1039,6 @@ def update_browser_state(
     btn_forward.set_sensitive(
         webview.can_go_forward()
     )
-
 
 def create_new_tab(
     url=None
@@ -945,7 +1066,6 @@ def create_new_tab(
         "Mozilla/5.0 "
         "(X11; Linux x86_64) "
         "AppleWebKit/537.36 "
-        "(KHTML, like Gecko) "
         "Chrome/120.0.0.0 "
         "Safari/537.36"
     )
@@ -1099,7 +1219,6 @@ def create_new_tab(
 
     return browser
 
-
 def on_back_clicked(
     button
 ):
@@ -1116,7 +1235,6 @@ def on_back_clicked(
 
         browser.go_back()
 
-
 def on_forward_clicked(
     button
 ):
@@ -1132,7 +1250,6 @@ def on_forward_clicked(
     ):
 
         browser.go_forward()
-
 
 def on_reload_clicked(
     button
@@ -1167,7 +1284,6 @@ def on_reload_clicked(
     else:
 
         browser.reload()
-
 
 def on_url_submitted(
     entry
@@ -1231,7 +1347,6 @@ def on_url_submitted(
         url
     )
 
-
 def on_tab_switched(
     notebook_widget,
     page,
@@ -1252,10 +1367,10 @@ def on_tab_switched(
         browser = child
 
     if browser:
+
         update_browser_state(
             browser
         )
-
 
 def reload_homepage_if_needed():
 
@@ -1285,7 +1400,6 @@ def reload_homepage_if_needed():
             f"file://{current_dir}/"
         )
 
-
 def set_dark_mode():
 
     gtk_settings = (
@@ -1298,7 +1412,6 @@ def set_dark_mode():
     )
 
     reload_homepage_if_needed()
-
 
 def set_light_mode():
 
@@ -1313,9 +1426,274 @@ def set_light_mode():
 
     reload_homepage_if_needed()
 
+def choose_color(
+    parent_window,
+    color_name,
+    display_button
+):
+
+    current_color = get_theme_color(
+        color_name
+    )
+
+    rgba = Gdk.RGBA()
+
+    rgba.parse(
+        current_color
+    )
+
+    dialog = Gtk.ColorChooserDialog(
+        title=f"Choose {color_name.replace('_', ' ').title()} Color",
+        parent=parent_window
+    )
+
+    dialog.set_rgba(
+        rgba
+    )
+
+    response = dialog.run()
+
+    if response == Gtk.ResponseType.OK:
+
+        selected_rgba = dialog.get_rgba()
+
+        red = round(
+            selected_rgba.red * 255
+        )
+
+        green = round(
+            selected_rgba.green * 255
+        )
+
+        blue = round(
+            selected_rgba.blue * 255
+        )
+
+        new_color = (
+            f"#{red:02X}"
+            f"{green:02X}"
+            f"{blue:02X}"
+        )
+
+        set_theme_color(
+            color_name,
+            new_color
+        )
+
+        display_button.set_label(
+            new_color
+        )
+
+        reload_homepage_if_needed()
+
+    dialog.destroy()
+
+def save_theme(
+    parent_window
+):
+
+    dialog = Gtk.FileChooserDialog(
+        title="Save WarpNix Theme",
+        parent=parent_window,
+        action=Gtk.FileChooserAction.SAVE
+    )
+
+    dialog.add_button(
+        "Cancel",
+        Gtk.ResponseType.CANCEL
+    )
+
+    dialog.add_button(
+        "Save",
+        Gtk.ResponseType.ACCEPT
+    )
+
+    dialog.set_current_name(
+        current_theme["name"]
+        .replace(" ", "-")
+        .lower()
+        + ".wntheme"
+    )
+
+    dialog.set_do_overwrite_confirmation(
+        True
+    )
+
+    response = dialog.run()
+
+    if response == Gtk.ResponseType.ACCEPT:
+
+        filename = dialog.get_filename()
+
+        if filename:
+
+            if not filename.lower().endswith(
+                ".wntheme"
+            ):
+                filename += ".wntheme"
+
+            try:
+
+                with open(
+                    filename,
+                    "w",
+                    encoding="utf-8"
+                ) as theme_file:
+
+                    json.dump(
+                        current_theme,
+                        theme_file,
+                        indent=4
+                    )
+
+                success_dialog = Gtk.MessageDialog(
+                    transient_for=parent_window,
+                    modal=True,
+                    message_type=Gtk.MessageType.INFO,
+                    buttons=Gtk.ButtonsType.OK,
+                    text="Theme saved successfully!"
+                )
+
+                success_dialog.format_secondary_text(
+                    filename
+                )
+
+                success_dialog.run()
+                success_dialog.destroy()
+
+            except Exception as error:
+
+                error_dialog = Gtk.MessageDialog(
+                    transient_for=parent_window,
+                    modal=True,
+                    message_type=Gtk.MessageType.ERROR,
+                    buttons=Gtk.ButtonsType.OK,
+                    text="Could not save theme."
+                )
+
+                error_dialog.format_secondary_text(
+                    str(error)
+                )
+
+                error_dialog.run()
+                error_dialog.destroy()
+
+    dialog.destroy()
+
+def load_theme(
+    parent_window,
+    color_buttons,
+    theme_name_label
+):
+
+    dialog = Gtk.FileChooserDialog(
+        title="Load WarpNix Theme",
+        parent=parent_window,
+        action=Gtk.FileChooserAction.OPEN
+    )
+
+    dialog.add_button(
+        "Cancel",
+        Gtk.ResponseType.CANCEL
+    )
+
+    dialog.add_button(
+        "Open",
+        Gtk.ResponseType.ACCEPT
+    )
+
+    response = dialog.run()
+
+    if response == Gtk.ResponseType.ACCEPT:
+
+        filename = dialog.get_filename()
+
+        if filename:
+
+            try:
+
+                with open(
+                    filename,
+                    "r",
+                    encoding="utf-8"
+                ) as theme_file:
+
+                    theme_data = json.load(
+                        theme_file
+                    )
+
+                if not apply_theme(
+                    theme_data
+                ):
+
+                    raise ValueError(
+                        "This is not a valid WarpNix theme file."
+                    )
+
+                for color_name, button in color_buttons.items():
+
+                    button.set_label(
+                        get_theme_color(
+                            color_name
+                        )
+                    )
+
+                theme_name_label.set_text(
+                    current_theme["name"]
+                )
+
+                reload_homepage_if_needed()
+
+                success_dialog = Gtk.MessageDialog(
+                    transient_for=parent_window,
+                    modal=True,
+                    message_type=Gtk.MessageType.INFO,
+                    buttons=Gtk.ButtonsType.OK,
+                    text="Theme loaded successfully!"
+                )
+
+                success_dialog.format_secondary_text(
+                    current_theme["name"]
+                )
+
+                success_dialog.run()
+                success_dialog.destroy()
+
+            except Exception as error:
+
+                error_dialog = Gtk.MessageDialog(
+                    transient_for=parent_window,
+                    modal=True,
+                    message_type=Gtk.MessageType.ERROR,
+                    buttons=Gtk.ButtonsType.OK,
+                    text="Could not load theme."
+                )
+
+                error_dialog.format_secondary_text(
+                    str(error)
+                )
+
+                error_dialog.run()
+                error_dialog.destroy()
+
+    dialog.destroy()
+
+def change_theme_name(
+    entry,
+    theme_name_label
+):
+
+    name = entry.get_text().strip()
+
+    if name:
+
+        current_theme["name"] = name
+
+        theme_name_label.set_text(
+            name
+        )
 
 settings_window = None
-
 
 def show_settings(
     button
@@ -1340,8 +1718,8 @@ def show_settings(
     )
 
     settings_window.set_default_size(
-        360,
-        350
+        430,
+        600
     )
 
     settings_window.set_resizable(
@@ -1350,7 +1728,7 @@ def show_settings(
 
     settings_layout = Gtk.Box(
         orientation=Gtk.Orientation.VERTICAL,
-        spacing=12
+        spacing=10
     )
 
     settings_layout.set_property(
@@ -1420,6 +1798,248 @@ def show_settings(
         0
     )
 
+    separator1 = Gtk.Separator(
+        orientation=Gtk.Orientation.HORIZONTAL
+    )
+
+    settings_layout.pack_start(
+        separator1,
+        False,
+        False,
+        8
+    )
+
+    theme_label = Gtk.Label()
+
+    theme_label.set_markup(
+        "<b>🎨 Custom Theme</b>"
+    )
+
+    theme_label.set_xalign(
+        0
+    )
+
+    settings_layout.pack_start(
+        theme_label,
+        False,
+        False,
+        0
+    )
+
+    theme_name_label = Gtk.Label(
+        label=current_theme["name"]
+    )
+
+    theme_name_label.set_xalign(
+        0
+    )
+
+    settings_layout.pack_start(
+        theme_name_label,
+        False,
+        False,
+        0
+    )
+
+    theme_name_entry = Gtk.Entry()
+
+    theme_name_entry.set_placeholder_text(
+        "Theme name..."
+    )
+
+    theme_name_entry.set_text(
+        current_theme["name"]
+    )
+
+    settings_layout.pack_start(
+        theme_name_entry,
+        False,
+        False,
+        0
+    )
+
+    theme_name_button = Gtk.Button(
+        label="✏ Set Theme Name"
+    )
+
+    theme_name_button.connect(
+        "clicked",
+        lambda b:
+            change_theme_name(
+                theme_name_entry,
+                theme_name_label
+            )
+    )
+
+    settings_layout.pack_start(
+        theme_name_button,
+        False,
+        False,
+        0
+    )
+
+    color_buttons = {}
+
+    color_definitions = [
+        (
+            "background",
+            "Background"
+        ),
+        (
+            "foreground",
+            "Foreground"
+        ),
+        (
+            "form_background",
+            "Form Background"
+        ),
+        (
+            "border",
+            "Border"
+        ),
+        (
+            "secondary",
+            "Secondary Text"
+        )
+    ]
+
+    for color_name, display_name in color_definitions:
+
+        row = Gtk.Box(
+            orientation=Gtk.Orientation.HORIZONTAL,
+            spacing=8
+        )
+
+        label = Gtk.Label(
+            label=display_name
+        )
+
+        label.set_xalign(
+            0
+        )
+
+        label.set_hexpand(
+            True
+        )
+
+        color_button = Gtk.Button(
+            label=get_theme_color(
+                color_name
+            )
+        )
+
+        color_button.set_size_request(
+            110,
+            35
+        )
+
+        color_button.connect(
+            "clicked",
+            lambda b,
+            name=color_name:
+                choose_color(
+                    settings_window,
+                    name,
+                    b
+                )
+        )
+
+        row.pack_start(
+            label,
+            True,
+            True,
+            0
+        )
+
+        row.pack_end(
+            color_button,
+            False,
+            False,
+            0
+        )
+
+        settings_layout.pack_start(
+            row,
+            False,
+            False,
+            0
+        )
+
+        color_buttons[
+            color_name
+        ] = color_button
+
+    theme_buttons = Gtk.Box(
+        orientation=Gtk.Orientation.HORIZONTAL,
+        spacing=8
+    )
+
+    save_theme_button = Gtk.Button(
+        label="💾 Save .wntheme"
+    )
+
+    save_theme_button.set_hexpand(
+        True
+    )
+
+    save_theme_button.connect(
+        "clicked",
+        lambda b:
+            save_theme(
+                settings_window
+            )
+    )
+
+    load_theme_button = Gtk.Button(
+        label="📂 Load .wntheme"
+    )
+
+    load_theme_button.set_hexpand(
+        True
+    )
+
+    load_theme_button.connect(
+        "clicked",
+        lambda b:
+            load_theme(
+                settings_window,
+                color_buttons,
+                theme_name_label
+            )
+    )
+
+    theme_buttons.pack_start(
+        save_theme_button,
+        True,
+        True,
+        0
+    )
+
+    theme_buttons.pack_start(
+        load_theme_button,
+        True,
+        True,
+        0
+    )
+
+    settings_layout.pack_start(
+        theme_buttons,
+        False,
+        False,
+        4
+    )
+
+    separator2 = Gtk.Separator(
+        orientation=Gtk.Orientation.HORIZONTAL
+    )
+
+    settings_layout.pack_start(
+        separator2,
+        False,
+        False,
+        8
+    )
+
     history_button = Gtk.Button(
         label="🕘  History"
     )
@@ -1440,15 +2060,15 @@ def show_settings(
         0
     )
 
-    separator = Gtk.Separator(
+    separator3 = Gtk.Separator(
         orientation=Gtk.Orientation.HORIZONTAL
     )
 
     settings_layout.pack_start(
-        separator,
+        separator3,
         False,
         False,
-        10
+        8
     )
 
     wip_label = Gtk.Label(
@@ -1489,7 +2109,6 @@ def show_settings(
 
     settings_window.show_all()
 
-
 btn_back.connect(
     "clicked",
     on_back_clicked
@@ -1525,7 +2144,6 @@ notebook.connect(
     "switch-page",
     on_tab_switched
 )
-
 
 def handle_shortcuts(
     widget,
@@ -1588,7 +2206,6 @@ def handle_shortcuts(
             return True
 
     return False
-
 
 window.connect(
     "key-press-event",
