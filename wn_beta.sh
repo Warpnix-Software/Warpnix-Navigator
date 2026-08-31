@@ -368,7 +368,7 @@ btn_settings = Gtk.Button(
 )
 
 btn_settings.set_tooltip_text(
-    "Warpnix Settings"
+    "Warpnix Navigator Settings"
 )
 
 url_entry = Gtk.Entry()
@@ -486,7 +486,7 @@ def save_history_to_txt(parent_window):
         return
 
     dialog = Gtk.FileChooserDialog(
-        title="Save Warpnix History",
+        title="Save Warpnix Navigator History",
         parent=parent_window,
         action=Gtk.FileChooserAction.SAVE
     )
@@ -502,7 +502,7 @@ def save_history_to_txt(parent_window):
     )
 
     dialog.set_current_name(
-        "warpnix-history.txt"
+        "warpnix-navigator-history.txt"
     )
 
     dialog.set_do_overwrite_confirmation(
