@@ -1,7 +1,7 @@
  # Warpnix Navigator
 > The very first step in the war against Chrome and Edge.
 
-Warpnix Navigator is a hyper-lightweight, minimalist deGoogled web browser built for the Warpnix family of open-source software (including [WarpnixOS](https://github.com/Warpnix-Software/WarpnixOS)). Built using **Python**, **Bash**, **GTK3**, and **WebKit**, it strips away mainstream browser bloat (##I'm lookin' at you, Chrome!##) for a fast, system-native experience.
+Warpnix Navigator is a hyper-lightweight, minimalist deGoogled web browser built for the Warpnix family of open-source software (including [WarpnixOS](https://github.com/Warpnix-Software/WarpnixOS)). Built using **Python**, **Bash**, **GTK3**, and **WebKit**, it strips away mainstream browser bloat (I'm lookin' at you, Chrome!) for a fast, system-native experience.
 
 ---
 
@@ -25,15 +25,15 @@ sudo apt install python3 python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webki
 
 ### Fedora / RHEL / Fedora Atomic
 ```bash
-sudo dnf install python3 python3-gobject gtk3 webkit2gtk4.1 zenity
+sudo dnf install python3 python3-gobject gtk3-devel webkit2gtk4.1-devel zenity
 ```
 OR
 ```bash
-sudo rpm install python3 python3-gobject gtk3 webkit2gtk4.1 zenity
+rpm-ostree install python3 python3-gobject gtk3-devel webkit2gtk4.1-devel zenity
 ```
 ### Arch Linux
 ```bash
-sudo pacman -S python python-gobject gtk3 webkit2gtk zenity
+sudo pacman -S python-gobject python-cairo gtk3 webkit2gtk-4.1 zenity
 ```
 
 ### Setup & Execution
@@ -58,9 +58,27 @@ chmod +x wn_beta.sh
 ---
 
 ##  Roadmap
-* **0.2.x — OS X Support:** Expand to more Unix-like and Unix-based operating systems and improve portability.
-* **0.3.x — BSD Support:** Adapt platform integration and interface behavior.
-* **0.4.x and Beyond:** Long-term targets include Windows, ReactOS, and Haiku.
+## Roadmap
+
+* **0.1.5**: released
+* **0.1.6**: released
+* **0.1.7**: released
+* **0.1.8**: released
+* **0.1.9**: released
+* **0.1.10**: Add a settings menu.
+* **0.1.11**: Make the installer script GUI.
+* **0.1.12**: Make the uninstaller GUI.
+* **0.1.13**: General bugfixes. 
+* **0.1.14**: Optimize Navigator for older hardware. 
+* **0.1.15**: Add error messages, AS HAIKUS.
+* **0.1.16**: Optimize video streaming. 
+* **0.1.17**: Add a couple more themes.
+* **0.1.18**: Polish the settings menu.
+* **0.1.19**: Add an 'About' zenity popup. 
+* **0.2.0**: Release Mac OS port.
+* **0.2.x** — Mac OS X Support: Expand to more Unix-like and Unix-based operating systems and improve portability.
+* **0.3.x** — BSD Support: Adapt platform integration and interface behavior.
+* **0.4.x** and Beyond: Long-term targets include Windows, ReactOS, and Haiku.
 
 ## Contributing
 Warpnix Navigator is licensed under the GPL-3.0 License. Bug reports and feature requests are completely welcome—feel free to open an issue or submit a pull request!
