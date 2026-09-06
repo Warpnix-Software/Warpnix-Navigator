@@ -1,4 +1,5 @@
 #!/bin/bash
+# WarpNix Navigator 0.1.10
 
 export WEBKIT_DISABLE_COMPOSITING_MODE=1
 export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
@@ -10,6 +11,7 @@ import os
 import sys
 import base64
 import json
+import time
 import gi
 
 gi.require_version('Gtk', '3.0')
@@ -30,6 +32,59 @@ current_dir = (
     if os.path.isfile(script_path)
     else os.getcwd()
 )
+
+# WarpNix Navigator 0.1.10 configuration
+config_dir = os.path.join(
+    os.path.expanduser("~"),
+    ".config",
+    "warpnix-navigator"
+)
+config_file = os.path.join(config_dir, "settings.json")
+history_file = os.path.join(config_dir, "history.json")
+
+def ensure_config_dir():
+    try:
+        os.makedirs(config_dir, exist_ok=True)
+    except Exception:
+        pass
+
+ensure_config_dir()
+
+def load_json_file(path, default):
+    try:
+        with open(path, "r", encoding="utf-8") as file:
+            data = json.load(file)
+        return data
+    except Exception:
+        return default
+
+def save_json_file(path, data):
+    try:
+        ensure_config_dir()
+        with open(path, "w", encoding="utf-8") as file:
+            json.dump(data, file, indent=4)
+        return True
+    except Exception:
+        return False
+
+app_preferences = load_json_file(
+    config_file,
+    {
+        "search_engine": "Qwant",
+        "homepage": "warpnix",
+        "theme_mode": "dark"
+    }
+)
+
+search_engines = {
+    "Qwant": "https://qwant.com/?q=",
+    "DuckDuckGo": "https://duckduckgo.com/?q=",
+    "Google": "https://www.google.com/search?q=",
+    "Bing": "https://www.bing.com/search?q="
+}
+
+def save_preferences():
+    save_json_file(config_file, app_preferences)
 
 logo_path = os.path.join(current_dir, "logo.png")
 logo_data_uri = ""
@@ -150,6 +205,11 @@ def get_homepage_html():
         f'<img src="{logo_data_uri}" alt="Warpnix Logo">'
         if logo_data_uri
         else '<h1>Warpnix Navigator</h1>'
+    )
+
+    search_url = search_engines.get(
+        app_preferences.get("search_engine", "Qwant"),
+        search_engines["Qwant"]
     )
 
     return f"""
@@ -295,7 +355,7 @@ def get_homepage_html():
 
             <input
                 type="text"
-                placeholder="Search Qwant..."
+                placeholder="Search {app_preferences.get('search_engine', 'Qwant')}..."
                 autofocus
                 required
                 autocomplete="off"
@@ -358,6 +418,16 @@ btn_reload = Gtk.Button.new_from_icon_name(
     Gtk.IconSize.BUTTON
 )
 
+btn_home = Gtk.Button.new_from_icon_name(
+    "go-home",
+    Gtk.IconSize.BUTTON
+)
+btn_home.set_tooltip_text("Home")
+
+security_label = Gtk.Label(label="")
+security_label.set_margin_start(4)
+security_label.set_margin_end(4)
+
 btn_new_tab = Gtk.Button.new_from_icon_name(
     "list-add",
     Gtk.IconSize.BUTTON
@@ -393,6 +463,20 @@ top_panel.pack_start(
 
 top_panel.pack_start(
     btn_reload,
+    False,
+    False,
+    0
+)
+
+top_panel.pack_start(
+    btn_home,
+    False,
+    False,
+    0
+)
+
+top_panel.pack_start(
+    security_label,
     False,
     False,
     0
@@ -441,7 +525,30 @@ main_layout.pack_start(
 
 browser_to_tab = {}
 
-history_entries = []
+closed_tabs = []
+history_entries = load_json_file(history_file, [])
+if not isinstance(history_entries, list):
+    history_entries = []
+
+def persist_history():
+    # Keep history compact and usable without letting it grow forever.
+    save_json_file(history_file, history_entries[-500:])
+
+def remember_closed_tab(browser):
+    if not browser:
+        return
+
+    uri = browser.get_uri() or ""
+    if not uri or uri == "about:blank" or uri.startswith("file://"):
+        return
+
+    closed_tabs.append({
+        "uri": uri,
+        "title": browser.get_title() or "New Tab"
+    })
+
+    if len(closed_tabs) > 10:
+        del closed_tabs[:-10]
 
 def add_history_entry(webview):
 
@@ -465,8 +572,11 @@ def add_history_entry(webview):
 
     history_entries.append({
         "title": title,
-        "uri": uri
+        "uri": uri,
+        "timestamp": int(time.time())
     })
+
+    persist_history()
 
 def save_history_to_txt(parent_window):
 
@@ -883,6 +993,7 @@ def close_tab(
         if tab == scrolled_window:
 
             browser = webview
+            remember_closed_tab(browser)
 
             del browser_to_tab[
                 webview
@@ -1022,6 +1133,16 @@ def update_browser_state(
 
         display_uri = uri
 
+    if uri.startswith("https://"):
+        security_label.set_text("🔒")
+        security_label.set_tooltip_text("Secure HTTPS connection")
+    elif uri.startswith("http://"):
+        security_label.set_text("⚠")
+        security_label.set_tooltip_text("This page is using HTTP")
+    else:
+        security_label.set_text("")
+        security_label.set_tooltip_text("")
+
     window.set_title(
         f"Warpnix Navigator - {title} — {display_uri}"
     )
@@ -1149,6 +1270,20 @@ def create_new_tab(
         scrolled_window
     )
 
+    def on_tab_header_button_press(header, event):
+        if event.button == 2:
+            close_tab(None, scrolled_window)
+            return True
+        return False
+
+    tab_header.add_events(
+        Gdk.EventMask.BUTTON_PRESS_MASK
+    )
+    tab_header.connect(
+        "button-press-event",
+        on_tab_header_button_press
+    )
+
     tab_header.pack_start(
         tab_label,
         True,
@@ -1218,6 +1353,28 @@ def create_new_tab(
     )
 
     return browser
+
+def go_home(button=None):
+    browser = get_current_browser()
+    if not browser:
+        return
+
+    browser.load_html(
+        get_homepage_html(),
+        f"file://{current_dir}/"
+    )
+
+def reopen_closed_tab(button=None):
+    if not closed_tabs:
+        return
+
+    entry = closed_tabs.pop()
+    create_new_tab(entry.get("uri"))
+
+def update_security_for_current_tab():
+    browser = get_current_browser()
+    if browser:
+        update_browser_state(browser)
 
 def on_back_clicked(
     button
@@ -1328,8 +1485,12 @@ def on_url_submitted(
             "." not in url
         ):
 
+            search_url = search_engines.get(
+                app_preferences.get("search_engine", "Qwant"),
+                search_engines["Qwant"]
+            )
             url = (
-                "https://qwant.com/?q="
+                search_url
                 + url.replace(
                     " ",
                     "+"
@@ -1410,6 +1571,8 @@ def set_dark_mode():
         "gtk-application-prefer-dark-theme",
         True
     )
+    app_preferences["theme_mode"] = "dark"
+    save_preferences()
 
     reload_homepage_if_needed()
 
@@ -1423,6 +1586,8 @@ def set_light_mode():
         "gtk-application-prefer-dark-theme",
         False
     )
+    app_preferences["theme_mode"] = "light"
+    save_preferences()
 
     reload_homepage_if_needed()
 
@@ -2029,6 +2194,42 @@ def show_settings(
         4
     )
 
+    separator_search = Gtk.Separator(
+        orientation=Gtk.Orientation.HORIZONTAL
+    )
+
+    settings_layout.pack_start(
+        separator_search,
+        False,
+        False,
+        8
+    )
+
+    search_label = Gtk.Label(label="🔍 Search Engine")
+    search_label.set_xalign(0)
+    settings_layout.pack_start(search_label, False, False, 0)
+
+    search_combo = Gtk.ComboBoxText()
+    for engine_name in search_engines:
+        search_combo.append_text(engine_name)
+
+    current_engine = app_preferences.get("search_engine", "Qwant")
+    engine_names = list(search_engines.keys())
+    if current_engine in engine_names:
+        search_combo.set_active(engine_names.index(current_engine))
+    else:
+        search_combo.set_active(0)
+
+    def save_search_engine(combo):
+        selected = combo.get_active_text()
+        if selected in search_engines:
+            app_preferences["search_engine"] = selected
+            save_preferences()
+            reload_homepage_if_needed()
+
+    search_combo.connect("changed", save_search_engine)
+    settings_layout.pack_start(search_combo, False, False, 0)
+
     separator2 = Gtk.Separator(
         orientation=Gtk.Orientation.HORIZONTAL
     )
@@ -2072,7 +2273,7 @@ def show_settings(
     )
 
     wip_label = Gtk.Label(
-        label="More settings coming soon..."
+        label="0.1.10 settings: search engine, themes, history, and appearance."
     )
 
     wip_label.set_xalign(
@@ -2124,6 +2325,11 @@ btn_reload.connect(
     on_reload_clicked
 )
 
+btn_home.connect(
+    "clicked",
+    go_home
+)
+
 btn_new_tab.connect(
     "clicked",
     lambda b:
@@ -2150,59 +2356,68 @@ def handle_shortcuts(
     event
 ):
 
-    alt_pressed = (
-        event.state
-        &
-        Gdk.ModifierType.MOD1_MASK
+    ctrl_pressed = bool(
+        event.state & Gdk.ModifierType.CONTROL_MASK
     )
+
+    alt_pressed = bool(
+        event.state & Gdk.ModifierType.MOD1_MASK
+    )
+
+    if ctrl_pressed:
+
+        if event.keyval == Gdk.KEY_l:
+            url_entry.grab_focus()
+            url_entry.select_region(0, -1)
+            return True
+
+        elif event.keyval == Gdk.KEY_t and bool(
+            event.state & Gdk.ModifierType.SHIFT_MASK
+        ):
+            reopen_closed_tab()
+            return True
+
+        elif event.keyval == Gdk.KEY_t:
+            create_new_tab()
+            return True
+
+        elif event.keyval == Gdk.KEY_w:
+            browser = get_current_browser()
+            if browser:
+                scrolled = browser_to_tab.get(browser)
+                if scrolled:
+                    close_tab(None, scrolled)
+            return True
+
+        elif event.keyval == Gdk.KEY_r:
+            on_reload_clicked(None)
+            return True
+
 
     if alt_pressed:
 
         if event.keyval == Gdk.KEY_Left:
-
             on_back_clicked(None)
-
             return True
 
         elif event.keyval == Gdk.KEY_Right:
-
             on_forward_clicked(None)
-
             return True
 
         elif event.keyval == Gdk.KEY_r:
-
             on_reload_clicked(None)
-
             return True
 
         elif event.keyval == Gdk.KEY_t:
-
             create_new_tab()
-
             return True
 
         elif event.keyval == Gdk.KEY_w:
-
-            browser = (
-                get_current_browser()
-            )
-
+            browser = get_current_browser()
             if browser:
-
-                scrolled = (
-                    browser_to_tab.get(
-                        browser
-                    )
-                )
-
+                scrolled = browser_to_tab.get(browser)
                 if scrolled:
-
-                    close_tab(
-                        None,
-                        scrolled
-                    )
-
+                    close_tab(None, scrolled)
             return True
 
     return False
@@ -2211,6 +2426,11 @@ window.connect(
     "key-press-event",
     handle_shortcuts
 )
+
+if app_preferences.get("theme_mode") == "light":
+    set_light_mode()
+else:
+    set_dark_mode()
 
 create_new_tab()
 
