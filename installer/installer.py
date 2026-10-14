@@ -13,7 +13,7 @@ from gi.repository import Gtk, Gdk, GLib, GdkPixbuf
 
 
 APP_NAME = "Warpnix Navigator"
-VERSION = "0.1.x"
+VERSION = "2026.10"
 
 # installer.sh passes the actual Warpnix-Navigator directory here
 SOURCE_DIR = (
@@ -896,12 +896,6 @@ class Installer(Gtk.Window):
                     f"Could not find:\n{browser_source}"
                 )
 
-            if not os.path.isfile(
-                logo_source
-            ):
-                raise FileNotFoundError(
-                    f"Could not find:\n{logo_source}"
-                )
 
             # -------------------------------------------------
             # Browser files
@@ -912,13 +906,14 @@ class Installer(Gtk.Window):
                 0.15
             )
 
-            shutil.copy2(
-                logo_source,
-                os.path.join(
-                    install_target,
-                    "logo.png"
+            if os.path.isfile(logo_source):
+                shutil.copy2(
+                    logo_source,
+                    os.path.join(
+                        install_target,
+                        "logo.png"
+                    )
                 )
-            )
 
             shutil.copy2(
                 browser_source,
@@ -965,7 +960,7 @@ class Installer(Gtk.Window):
             # Application icon
             # -------------------------------------------------
 
-            if icon_enabled:
+            if icon_enabled and os.path.isfile(logo_source):
 
                 self.set_status(
                     "Installing application icon...",
@@ -995,8 +990,10 @@ class Installer(Gtk.Window):
                     "Name=Warpnix Navigator\n"
                     "Comment=Lightweight, privacy-focused web browser\n"
                     f"Exec={INSTALL_BIN}\n"
-                    "Icon=warpnix-navigator\n"
-                    "Terminal=false\n"
+                    + ("Icon=warpnix-navigator\\n"
+                       if icon_enabled and os.path.isfile(logo_source)
+                       else "")
+                    + "Terminal=false\n"
                     "Categories=Network;WebBrowser;\n"
                     "Keywords=browser;web;internet;warpnix;qwant;\n"
                 )

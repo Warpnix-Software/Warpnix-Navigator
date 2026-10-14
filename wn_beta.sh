@@ -1,14 +1,13 @@
 #!/bin/bash
-# WarpNix Navigator 0.1.10
-
-export WEBKIT_DISABLE_COMPOSITING_MODE=1
-export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
-export LIBGL_ALWAYS_SOFTWARE=1
+# Warpnix Navigator 2026.10
 
 python3 - <<'EOF'
 
 import os
+import html
 import sys
+import shutil
+import subprocess
 import base64
 import json
 import time
@@ -33,7 +32,7 @@ current_dir = (
     else os.getcwd()
 )
 
-# WarpNix Navigator 0.1.10 configuration
+# Warpnix Navigator 2026.10 configuration
 config_dir = os.path.join(
     os.path.expanduser("~"),
     ".config",
@@ -111,6 +110,31 @@ current_theme = {
         "form_background": "#1e1e1e",
         "border": "#333333",
         "secondary": "#888888"
+    }
+}
+
+BUILT_IN_THEMES = {
+    "Oceanic Blue": {
+        "name": "Oceanic Blue",
+        "version": 1,
+        "colors": {
+            "background": "#071A2B",
+            "foreground": "#EAF6FF",
+            "form_background": "#102A43",
+            "border": "#245B78",
+            "secondary": "#9CC3D5"
+        }
+    },
+    "Forest Night": {
+        "name": "Forest Night",
+        "version": 1,
+        "colors": {
+            "background": "#101B16",
+            "foreground": "#E9F5EC",
+            "form_background": "#1B2C23",
+            "border": "#3B6049",
+            "secondary": "#A9C7B2"
+        }
     }
 }
 
@@ -192,6 +216,19 @@ def apply_theme(theme_data):
     }
 
     return True
+
+def apply_builtin_theme(theme_name, color_buttons, theme_name_label):
+    theme_data = BUILT_IN_THEMES.get(theme_name)
+    if not theme_data or not apply_theme(theme_data):
+        return
+
+    theme_name_label.set_text(current_theme["name"])
+
+    for color_name, button in color_buttons.items():
+        button.set_label(get_theme_color(color_name))
+
+    reload_homepage_if_needed()
+
 
 def get_homepage_html():
 
@@ -1161,6 +1198,81 @@ def update_browser_state(
         webview.can_go_forward()
     )
 
+def on_webview_load_failed(webview, load_event, failing_uri, error):
+    if not failing_uri:
+        return False
+
+    error_text = str(error)
+    if "cancel" in error_text.lower():
+        return False
+
+    safe_uri = html.escape(str(failing_uri), quote=True)
+    safe_error = html.escape(error_text[:300])
+
+    error_page = f"""<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warpnix Navigator — Page unavailable</title>
+<style>
+:root {{
+  color-scheme: dark;
+  font-family: sans-serif;
+}}
+body {{
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #121212;
+  color: #eeeeee;
+}}
+main {{
+  max-width: 520px;
+  padding: 32px;
+  text-align: center;
+}}
+h1 {{ color: #9cc3d5; }}
+.poem {{
+  margin: 28px 0;
+  line-height: 1.9;
+  font-family: Georgia, serif;
+  font-size: 1.15rem;
+}}
+a {{ color: #8bc9f0; }}
+details {{
+  margin-top: 24px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  color: #aaaaaa;
+  font-size: 0.85rem;
+}}
+</style>
+</head>
+<body>
+<main>
+<h1>Page adrift</h1>
+<div class="poem">
+The signal grows faint<br>
+The quiet web holds its breath<br>
+Dawn may find the way
+</div>
+<p>Warpnix Navigator couldn't load this page.</p>
+<p><a href="{safe_uri}">Try again</a></p>
+<details>
+<summary>Technical details</summary>
+<p>{safe_uri}</p>
+<p>{safe_error}</p>
+</details>
+</main>
+</body>
+</html>"""
+
+    webview.load_html(error_page, f"file://{current_dir}/")
+    return True
+
+
 def create_new_tab(
     url=None
 ):
@@ -1195,8 +1307,9 @@ def create_new_tab(
         WebKit2.WebContext.get_default()
     )
 
+    # Use WebKit's browser-oriented cache model for normal browsing.
     context.set_cache_model(
-        WebKit2.CacheModel.DOCUMENT_VIEWER
+        WebKit2.CacheModel.WEB_BROWSER
     )
 
     browser = (
@@ -1207,6 +1320,11 @@ def create_new_tab(
 
     browser.set_settings(
         settings
+    )
+
+    browser.connect(
+        "load-failed",
+        on_webview_load_failed
     )
 
     scrolled_window = (
@@ -1860,6 +1978,200 @@ def change_theme_name(
 
 settings_window = None
 
+def show_about(button=None):
+    about_text = (
+        "Warpnix Navigator 2026.10\n"
+        "A lightweight, privacy-focused browser\n\n"
+        "Built with Python, Bash, GTK3, and WebKit2GTK.\n"
+        "Camera, microphone, and location requests are denied by default.\n\n"
+        "Part of the Warpnix open-source software family."
+    )
+
+    zenity = shutil.which("zenity")
+    if zenity:
+        try:
+            subprocess.run(
+                [
+                    zenity,
+                    "--info",
+                    "--title=About Warpnix Navigator",
+                    "--width=420",
+                    "--text=" + about_text
+                ],
+                check=False
+            )
+            return
+        except OSError:
+            pass
+
+    fallback = Gtk.MessageDialog(
+        transient_for=window,
+        modal=True,
+        message_type=Gtk.MessageType.INFO,
+        buttons=Gtk.ButtonsType.OK,
+        text="Warpnix Navigator 2026.10"
+    )
+    fallback.format_secondary_text(
+        "A lightweight, privacy-focused browser\n"
+        "Built with Python, Bash, GTK3, and WebKit2GTK.\n"
+        "Part of the Warpnix open-source software family."
+    )
+    fallback.run()
+    fallback.destroy()
+
+
+
+def show_media_performance(button=None):
+    """Display read-only media and graphics diagnostics."""
+
+    lines = [
+        "Warpnix Navigator 2026.10 — Media & Performance",
+        "=" * 52,
+        "",
+        "WEBKITGTK",
+    ]
+
+    try:
+        lines.append(
+            "Version: {}.{}.{}".format(
+                WebKit2.get_major_version(),
+                WebKit2.get_minor_version(),
+                WebKit2.get_micro_version()
+            )
+        )
+    except Exception as error:
+        lines.append("Version unavailable: " + str(error))
+
+    try:
+        media_settings = WebKit2.Settings()
+        for prop_name in (
+            "enable-mediasource",
+            "enable-webaudio",
+            "enable-media-stream",
+            "enable-encrypted-media",
+            "hardware-acceleration-policy",
+        ):
+            prop = media_settings.find_property(prop_name)
+            if prop is None:
+                lines.append("{}: not exposed".format(prop_name))
+                continue
+            try:
+                value = media_settings.get_property(prop_name)
+                lines.append("{}: {}".format(prop_name, value))
+            except Exception as error:
+                lines.append("{}: unavailable ({})".format(
+                    prop_name, error
+                ))
+    except Exception as error:
+        lines.append("Settings inspection failed: " + str(error))
+
+    lines.extend(["", "GRAPHICS RENDERER"])
+    try:
+        result = subprocess.run(
+            ["glxinfo", "-B"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        relevant = [
+            line.strip()
+            for line in (result.stdout + "\n" + result.stderr).splitlines()
+            if any(term in line.lower() for term in (
+                "direct rendering",
+                "opengl vendor",
+                "opengl renderer",
+                "opengl version",
+            ))
+        ]
+        lines.extend(relevant or [
+            "Renderer information unavailable (glxinfo may be missing)."
+        ])
+    except (OSError, subprocess.SubprocessError) as error:
+        lines.append("Could not run glxinfo: " + str(error))
+
+    lines.extend(["", "OPTIONAL TOOLS"])
+    for command in ("vainfo", "gst-inspect-1.0", "glxinfo"):
+        lines.append("{}: {}".format(
+            command, shutil.which(command) or "not installed"
+        ))
+
+    gst_inspect = shutil.which("gst-inspect-1.0")
+    if gst_inspect:
+        lines.extend(["", "GSTREAMER VIDEO PLUGINS"])
+        for plugin in ("playbin3", "decodebin", "avdec_h264",
+                       "vah264dec", "va"):
+            try:
+                result = subprocess.run(
+                    [gst_inspect, plugin],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=3,
+                    check=False,
+                )
+                lines.append("{}: {}".format(
+                    plugin,
+                    "available" if result.returncode == 0
+                    else "not detected"
+                ))
+            except (OSError, subprocess.SubprocessError):
+                lines.append("{}: check failed".format(plugin))
+
+    lines.extend([
+        "",
+        "Notes:",
+        "- This report does not change browser settings.",
+        "- Software rendering and hardware video decoding are different.",
+        "- Available plugins do not guarantee hardware decoding works.",
+    ])
+    report = "\n".join(lines)
+
+    dialog = Gtk.Dialog(
+        title="Media & Performance",
+        transient_for=window,
+        modal=False,
+    )
+    dialog.set_default_size(680, 520)
+    dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+    copy_button = dialog.add_button(
+        "Copy Diagnostics", Gtk.ResponseType.NONE
+    )
+
+    content = dialog.get_content_area()
+    content.set_spacing(8)
+    content.set_border_width(12)
+
+    description = Gtk.Label(
+        label="Read-only diagnostics for troubleshooting playback and rendering."
+    )
+    description.set_xalign(0)
+    content.pack_start(description, False, False, 0)
+
+    scroller = Gtk.ScrolledWindow()
+    scroller.set_policy(
+        Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC
+    )
+    text_view = Gtk.TextView()
+    text_view.set_editable(False)
+    text_view.set_cursor_visible(False)
+    text_view.set_monospace(True)
+    text_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+    text_view.get_buffer().set_text(report)
+    scroller.add(text_view)
+    content.pack_start(scroller, True, True, 0)
+
+    def copy_report(_button):
+        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        clipboard.set_text(report, -1)
+        clipboard.store()
+        copy_button.set_label("Copied!")
+
+    copy_button.connect("clicked", copy_report)
+    dialog.show_all()
+    dialog.run()
+    dialog.destroy()
+
+
 def show_settings(
     button
 ):
@@ -1894,6 +2206,28 @@ def show_settings(
     settings_layout = Gtk.Box(
         orientation=Gtk.Orientation.VERTICAL,
         spacing=10
+    )
+
+    about_button = Gtk.Button(
+        label="About Warpnix Navigator"
+    )
+    about_button.connect("clicked", show_about)
+    settings_layout.pack_start(
+        about_button,
+        False,
+        False,
+        0
+    )
+
+    media_button = Gtk.Button(
+        label="Media & Performance"
+    )
+    media_button.connect("clicked", show_media_performance)
+    settings_layout.pack_start(
+        media_button,
+        False,
+        False,
+        0
     )
 
     settings_layout.set_property(
@@ -2134,6 +2468,42 @@ def show_settings(
             color_name
         ] = color_button
 
+    quick_theme_row = Gtk.Box(
+        orientation=Gtk.Orientation.HORIZONTAL,
+        spacing=8
+    )
+
+    quick_theme_combo = Gtk.ComboBoxText()
+    quick_theme_combo.append_text("Oceanic Blue")
+    quick_theme_combo.append_text("Forest Night")
+    quick_theme_combo.set_active(-1)
+    quick_theme_combo.set_tooltip_text(
+        "Choose a built-in color theme"
+    )
+    quick_theme_combo.set_hexpand(True)
+
+    quick_theme_button = Gtk.Button(
+        label="Apply Built-in Theme"
+    )
+    quick_theme_button.connect(
+        "clicked",
+        lambda button: apply_builtin_theme(
+            quick_theme_combo.get_active_text(),
+            color_buttons,
+            theme_name_label
+        )
+    )
+
+    quick_theme_row.pack_start(
+        quick_theme_combo, True, True, 0
+    )
+    quick_theme_row.pack_end(
+        quick_theme_button, False, False, 0
+    )
+    settings_layout.pack_start(
+        quick_theme_row, False, False, 0
+    )
+
     theme_buttons = Gtk.Box(
         orientation=Gtk.Orientation.HORIZONTAL,
         spacing=8
@@ -2273,7 +2643,7 @@ def show_settings(
     )
 
     wip_label = Gtk.Label(
-        label="0.1.10 settings: search engine, themes, history, and appearance."
+        label="2026.10 settings: search engine, themes, history, and appearance."
     )
 
     wip_label.set_xalign(
@@ -2365,6 +2735,17 @@ def handle_shortcuts(
     )
 
     if ctrl_pressed:
+
+        if event.keyval == Gdk.KEY_Tab:
+            page_count = notebook.get_n_pages()
+            if page_count > 1:
+                current_page = notebook.get_current_page()
+                if event.state & Gdk.ModifierType.SHIFT_MASK:
+                    next_page = (current_page - 1) % page_count
+                else:
+                    next_page = (current_page + 1) % page_count
+                notebook.set_current_page(next_page)
+            return True
 
         if event.keyval == Gdk.KEY_l:
             url_entry.grab_focus()

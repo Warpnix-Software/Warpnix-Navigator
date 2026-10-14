@@ -8,7 +8,7 @@ INSTALLER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Parent directory = Warpnix-Navigator/
 SOURCE_DIR="$(cd "$INSTALLER_DIR/.." && pwd)"
 
-if [ ! -f "$SOURCE_DIR/wn_beta.sh" ] || [ ! -f "$SOURCE_DIR/logo.png" ]; then
+if [ ! -f "$SOURCE_DIR/wn_beta.sh" ]; then
     echo "Error: Could not find Warpnix Navigator files."
     echo "Make sure the installer folder is inside the Warpnix-Navigator folder."
     exit 1

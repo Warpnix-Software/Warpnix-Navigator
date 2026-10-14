@@ -49,36 +49,41 @@ chmod +x wn_beta.sh
 ---
 
 ## Keyboard Shortcuts
-* `Alt` + `T` : Open a new tab
-* `Alt` + `W` : Close active tab
-* `Alt` + `R` : Reload page
-* `Alt` + `Left Arrow` : Go back
-* `Alt` + `Right Arrow` : Go forward
+* `Ctrl` + `L`: Focus and select the address bar
+* `Ctrl` + `T`: Open a new tab
+* `Ctrl` + `W`: Close the active tab
+* `Ctrl` + `R`: Reload the page
+* `Ctrl` + `Shift` + `T`: Reopen the most recently closed tab
+* `Alt` + `T`: Open a new tab
+* `Alt` + `W`: Close the active tab
+* `Alt` + `R`: Reload the page
+* `Alt` + `Left Arrow`: Go back
+* `Alt` + `Right Arrow`: Go forward
 
 ---
 
-##  Roadmap
 ## Roadmap
 
-* **0.1.5**: released
-* **0.1.6**: released
-* **0.1.7**: released
-* **0.1.8**: released
-* **0.1.9**: released
-* **0.1.10**: Add a settings menu.
-* **0.1.11**: Make the installer script GUI.
-* **0.1.12**: Make the uninstaller GUI.
-* **0.1.13**: General bugfixes. 
-* **0.1.14**: Optimize Navigator for older hardware. 
-* **0.1.15**: Add error messages, AS HAIKUS.
-* **0.1.16**: Optimize video streaming. 
-* **0.1.17**: Add a couple more themes.
-* **0.1.18**: Polish the settings menu.
-* **0.1.19**: Add an 'About' zenity popup. 
-* **0.2.0**: Release Mac OS port.
-* **0.2.x** — Mac OS X Support: Expand to more Unix-like and Unix-based operating systems and improve portability.
-* **0.3.x** — BSD Support: Adapt platform integration and interface behavior.
-* **0.4.x** and Beyond: Long-term targets include Windows, ReactOS, and Haiku.
+### 2026.10 — In development
+
+Implemented:
+- GUI uninstaller with confirmation; browser settings and history are preserved.
+- Haiku-style page-load error screen with a retry link.
+- Built-in Oceanic Blue and Forest Night themes.
+- About dialog using Zenity when available, with a GTK fallback.
+- Installer version label updated to 2026.10; missing logos no longer break desktop-entry creation.
+
+Still planned:
+- General bug fixes and reliability improvements.
+- Performance improvements for older hardware.
+- Video-streaming performance improvements.
+- Further settings-menu polish.
+
+### Longer-term goals
+
+- **0.2.x:** Explore support for macOS and improve portability.
+- **0.3.x:** Explore BSD support.
+- **0.4.x and beyond:** Investigate Windows, ReactOS, and Haiku support.
 
 ## Contributing
 Warpnix Navigator is licensed under the GPL-3.0 License. Bug reports and feature requests are completely welcome—feel free to open an issue or submit a pull request!
