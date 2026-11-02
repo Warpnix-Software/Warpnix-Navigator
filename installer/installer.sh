@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
@@ -23,6 +23,12 @@ if ! python3 -c "import gi; gi.require_version('Gtk', '3.0'); from gi.repository
     echo "Error: GTK3 Python bindings are required."
     echo "On Debian/Ubuntu:"
     echo "sudo apt install python3-gi gir1.2-gtk-3.0"
+    echo "On FreeBSD:"
+    echo "sudo pkg install python3 py311-gobject3 gtk3 webkit2gtk41"
+    echo "On OpenBSD:"
+    echo "sudo pkg_add python3 py3-gobject3 gtk+3 webkitgtk41"
+    echo "On NetBSD:"
+    echo "pkgin install python3 py-gobject3 gtk3 webkit-gtk41"
     exit 1
 fi
 

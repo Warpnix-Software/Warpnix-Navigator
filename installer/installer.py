@@ -13,7 +13,7 @@ from gi.repository import Gtk, Gdk, GLib, GdkPixbuf
 
 
 APP_NAME = "Warpnix Navigator"
-VERSION = "2026.10"
+VERSION = "2026.11.0"
 
 # installer.sh passes the actual Warpnix-Navigator directory here
 SOURCE_DIR = (
