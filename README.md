@@ -190,16 +190,16 @@ The uninstaller removes the browser files, launcher, menu entry, and icon. Your 
 
 ## Roadmap
 
-Still planned:
+Still planned for the future:
 - General bug fixes and reliability improvements.
 - Performance improvements for older hardware.
 - Video-streaming performance improvements.
 - Further Settings-menu polish.
 
 Longer-term goals:
-- Explore **macOS** support and improve portability.
+- Explore **macOS X** support and improve portability.
 - Explore BSD support improvements and broader testing.
-- Investigate Windows, ReactOS, and Haiku support.
+- Investigate Microsoft Windows, ReactOS, and BeOS Haiku support.
 
 ---
 
